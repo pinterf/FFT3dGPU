@@ -1,4 +1,4 @@
-// FFT3DGPU plugin for Avisynth 2.5
+// FFT3DGPU plugin for Avisynth 2.6/Avisynth+
 // Copyright(C)2005 Tonny Petersen (tsp@person.dk) 
 // Based on FFT3DFilter plugin for Avisynth 2.5 - 3D Frequency Domain filter
 // Copyright(C)2004-2005 A.G.Balakhnin aka Fizick, email: bag@hotmail.ru, web: http://bag.hotmail.ru
@@ -1244,7 +1244,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
 	env->AddFunction("fft3dGPU", "c[sigma]f[beta]f[bw]i[bh]i[bt]i[sharpen]f[plane]i[mode]i[bordersize]i[precision]i[NVPerf]b[degrid]f[scutoff]f[svr]f[smin]f[smax]f[kratio]f[ow]i[oh]i[wintype]i[interlaced]b[sigma2]f[sigma3]f[sigma4]f[oldfft]b", Create_fft3dGPU, 0);
 	LOG("AvisynthPluginInit2 Addfunction done");
 
-	return "fft3dGPU ver 0.8.2"; 
+	return "fft3dGPU ver 0.8.3"; 
 } 
 
 

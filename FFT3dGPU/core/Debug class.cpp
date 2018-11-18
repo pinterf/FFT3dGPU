@@ -1,4 +1,4 @@
-// FFT3DGPU plugin for Avisynth 2.5
+// FFT3DGPU plugin for Avisynth 2.6/Avisynth+
 // Copyright(C)2005 Tonny Petersen (tsp@person.dk) 
 // Based on FFT3DFilter plugin for Avisynth 2.5 - 3D Frequency Domain filter
 // Copyright(C)2004-2005 A.G.Balakhnin aka Fizick, email: bag@hotmail.ru, web: http://bag.hotmail.ru
