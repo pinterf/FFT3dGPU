@@ -83,10 +83,10 @@ float4 Img2toFloat4( PS_INPUT4 In) :COLOR
 	float2 img=tex2D(Src,In.texCoord[1]).xw;
 	float2 img_shifted=tex2D(Src,In.texCoord[2]).xw;
 	#else
-	float2 img=tex2D(Src,In.texCoord[1]);
-	float2 img_shifted=tex2D(Src,In.texCoord[2]);
+	float2 img=tex2D(Src,In.texCoord[1]).xy;
+	float2 img_shifted=tex2D(Src,In.texCoord[2]).xy;
 	#endif
-	factor.xy=tex2D(Factor,In.texCoord[0]);
+	factor.xy=tex2D(Factor,In.texCoord[0]).xy;
 	//factor.zw=tex2D(Factor,In.texCoord[1]);
 	src.xy=img;
 	src.zw=img_shifted;//z??
@@ -105,17 +105,17 @@ float4 Float4toImg2( PS_INPUT4 In) : COLOR
 	//dst=src2*factor2+src1*factor1;
 	#ifdef MODE2
 	float2 src_shifted=tex2D(Src,In.texCoord[1]).xz;
-	float2 factor_shifted=tex2D(FactorM,In.texCoord[3]);
+	float2 factor_shifted=tex2D(FactorM,In.texCoord[3]).xy;
 	float2 src=tex2D(Src,In.texCoord[0]).yw;
-	float2 factor=tex2D(FactorM,In.texCoord[2]);
-	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(FactorM,In.texCoord[3])+tex2D(Src,In.texCoord[0]).yw*tex2D(FactorM,In.texCoord[2]);
+	float2 factor=tex2D(FactorM,In.texCoord[2]).xy;
+	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(FactorM,In.texCoord[3]).xy+tex2D(Src,In.texCoord[0]).yw*tex2D(FactorM,In.texCoord[2]).xy;
 	//dst=tex2D(Src,In.texCoord[0]).xz*tex2D(FactorM,In.texCoord[2])+tex2D(Src,In.texCoord[0]).xz*tex2D(FactorM,In.texCoord[2]);
 	//dst=tex2D(Src,In.texCoord[0]).yw*tex2D(FactorM,In.texCoord[2])+tex2D(Src,In.texCoord[0]).yw*tex2D(FactorM,In.texCoord[2]);
 	//dst=tex2D(Src,In.texCoord[1]).xz*tex2D(FactorM,In.texCoord[3])+tex2D(Src,In.texCoord[1]).xz*tex2D(FactorM,In.texCoord[3]);
 	dst=src_shifted*factor_shifted+src*factor;
 	dst=src_shifted+src;
 	#else
-	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(Factor,In.texCoord[1])+tex2D(Src,In.texCoord[0]).yw*tex2D(Factor,In.texCoord[0]);
+	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(Factor,In.texCoord[1]).xy+tex2D(Src,In.texCoord[0]).yw*tex2D(Factor,In.texCoord[0]).xy;
 	#endif
 	return dst.xyyy;
 }
@@ -131,10 +131,10 @@ float4 Img2toFloat4_2( PS_INPUT4 In) :COLOR
 	float2 img=tex2D(Src,In.texCoord[2]).xw;
 	float2 img_shifted=tex2D(Src,In.texCoord[1]).xw;
 	#else
-	float2 img=tex2D(Src,In.texCoord[2]);
-	float2 img_shifted=tex2D(Src,In.texCoord[1]);
+	float2 img=tex2D(Src,In.texCoord[2]).xy;
+	float2 img_shifted=tex2D(Src,In.texCoord[1]).xy;
 	#endif
-	factor.xy=tex2D(Factor,In.texCoord[0]);
+	factor.xy=tex2D(Factor,In.texCoord[0]).xy;
 	
 	src.xy=img;
 	src.zw=img_shifted;//z??
@@ -151,8 +151,8 @@ float4 Float4toImg2_2( PS_INPUT4 In) : COLOR
 	//float2 factor2=tex2D(Factor,In.texCoord+OFFSET).xy;
 	//dst=src2*factor2+src1*factor1;
 	
-	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(Factor,In.texCoord[1])+tex2D(Src,In.texCoord[0]).yw*tex2D(Factor,In.texCoord[0])
-	+tex2D(I,In.texCoord[2]).xz*tex2D(Factor,In.texCoord[2])+tex2D(I,In.texCoord[3]).yw*tex2D(Factor,In.texCoord[3]);
+	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(Factor,In.texCoord[1]).xy+tex2D(Src,In.texCoord[0]).yw*tex2D(Factor,In.texCoord[0]).xy
+	+tex2D(I,In.texCoord[2]).xz*tex2D(Factor,In.texCoord[2]).xy+tex2D(I,In.texCoord[3]).yw*tex2D(Factor,In.texCoord[3]).xy;
 	return dst.xyyy;
 }
 //*******************************************************************************************************
@@ -167,7 +167,7 @@ float4 i;
 float4 j;
 Index=In.texCoord;
 Index.y=PIXELOFFSET;
-LM=tex2D(LoadMap,Index);
+LM=tex2D(LoadMap,Index).xy;
 Index.y=In.texCoord.y;
 Index.x=LM.x;
 i=tex2D(Src,Index);
@@ -198,7 +198,7 @@ float4 i;
 float4 j;
 Index=In.texCoord;
 Index.y=PIXELOFFSET;
-LM=tex2D(LoadMap,Index);
+LM=tex2D(LoadMap,Index).xy;
 Index.y=In.texCoord.y;
 Index.x=LM.x;
 i=tex2D(Src,Index)*NORM;
@@ -229,7 +229,7 @@ float4 i;
 float4 j;
 Index.x=In.texCoord.y;
 Index.y=PIXELOFFSET;
-LM=tex2D(LoadMap,Index);
+LM=tex2D(LoadMap,Index).xy;
 Index.x=In.texCoord.x;
 Index.y=LM.x;
 i=tex2D(Src,Index);
@@ -306,8 +306,8 @@ float2 Offset;
 float4 temp;
 Index.x=In.texCoord.x;
 Index.y=_stage;
-W=tex2D(Factor,Index);
-LM=tex2D(LoadMap,Index);
+W=tex2D(Factor,Index).xy;
+LM=tex2D(LoadMap,Index).xy;
 Index.y=In.texCoord.y;
 Index.x=LM.x;
 Offset.x=PIXELOFFSET;
@@ -348,8 +348,8 @@ float2 Offset;
 float4 temp;
 Index.x=In.texCoord.y;
 Index.y=_stage;
-W=tex2D(Factor,Index);
-LM=tex2D(LoadMap,Index);
+W=tex2D(Factor,Index).xy;
+LM=tex2D(LoadMap,Index).xy;
 Index.x=In.texCoord.x;
 Index.y=LM.x;
 Offset.y=PIXELOFFSET;
@@ -385,7 +385,7 @@ float2 Index1;
 float2 Index2;
 Index1=In.texCoord;
 Index1.y=_stage;
-Index2=tex2D(LoadMap,Index1);
+Index2=tex2D(LoadMap,Index1).xy;
 Index1.x=Index2.x;
 Index1.y=In.texCoord.y;
 if(Index2.y==0)
@@ -402,7 +402,7 @@ float2 Index1;
 float2 Index2;
 Index1=In.texCoord.y;
 Index1.y=_stage;
-Index2=tex2D(LoadMap,Index1);
+Index2=tex2D(LoadMap,Index1).xy;
 Index1.y=Index2.x;
 Index1.x=In.texCoord.x;
 if(Index2.y==0)
