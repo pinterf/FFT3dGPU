@@ -147,8 +147,8 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="fft3dgpu.htm" />
     <None Include="test.avs" />
+    <None Include="documentation\fft3dgpu.htm" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fft3dgpu.txt" />

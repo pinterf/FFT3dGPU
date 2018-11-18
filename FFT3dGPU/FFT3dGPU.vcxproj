@@ -207,6 +207,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <CustomBuildStep>
       <Command>
@@ -237,6 +238,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalOptions>/Zc:threadSafeInit- %(AdditionalOptions)</AdditionalOptions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <CustomBuildStep>
       <Command>
@@ -384,7 +386,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="fft3dgpu.htm">
+    <None Include="documentation\fft3dgpu.htm">
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="test.avs" />
