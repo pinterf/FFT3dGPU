@@ -662,7 +662,7 @@ void FFT2dRR::CreateLoadMap(float *Map,unsigned int n,unsigned int rep){
  *	   taken from http://www.df.lth.se/~john_e/gems/gem0018.html
  */
 int FFT2dRR::ReverseBit_c(int data2invert, unsigned char revbits) {
-  unsigned int  NO_OF_BITS = sizeof(data2invert) * 8;
+  unsigned int  NO_OF_BITS = revbits;
   unsigned int reverse_num = 0, i, temp;
 
   for (i = 0; i < NO_OF_BITS; i++)
