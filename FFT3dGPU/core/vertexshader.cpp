@@ -1,5 +1,5 @@
 #include "Debug class.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 #include "vertexshader.h"
 
 Vertexshader::Vertexshader(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs)

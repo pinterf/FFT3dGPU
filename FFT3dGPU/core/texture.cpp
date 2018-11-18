@@ -20,7 +20,7 @@
 
 #include "texture.h"
 #include "Debug class.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 
 int Texture::_ID=0;
 

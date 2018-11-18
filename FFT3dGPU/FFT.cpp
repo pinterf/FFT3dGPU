@@ -21,7 +21,7 @@
 
 #include "./core/Debug class.h"
 #include "TexturePool.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 #include "FFT.h"
 
 

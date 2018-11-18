@@ -21,7 +21,7 @@
 
 #include "Pixelshader.h"
 #include "Debug class.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 #include <iomanip>
 
 

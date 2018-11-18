@@ -19,7 +19,7 @@
 // http://www.gnu.org/copyleft/gpl.html .
 
 #include "./core/Debug class.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 #include "filtersps.h"
 
 

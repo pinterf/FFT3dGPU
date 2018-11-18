@@ -20,7 +20,7 @@
 
 
 #include "./core/Debug class.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 #include "FFTps.h"
 
 

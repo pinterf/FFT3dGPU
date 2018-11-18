@@ -21,7 +21,7 @@
 #include "TexturePool.h"
 #include "filters.h"
 #include "./core/Debug class.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 
 const double pi(acos(-1.0));
 
@@ -931,7 +931,7 @@ FreeStreamPool(StreamPoolPointer)
 		}
 	}
 
-	offset=0;
+	int offset=0;
 	for(unsigned int yrep=0,offset=0;yrep<_ynum;yrep++)
 		for(unsigned int j=0;j<y;j++)
 			for(unsigned int xrep=0;xrep<_xnum;xrep++)

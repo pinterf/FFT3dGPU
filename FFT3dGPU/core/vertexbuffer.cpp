@@ -21,7 +21,7 @@
 
 #include <d3d9.h>
 #include "vertexbuffer.h"
-#include <dxerr9.h>
+#include <dxerr.h>
 #include "Debug class.h"
 
 

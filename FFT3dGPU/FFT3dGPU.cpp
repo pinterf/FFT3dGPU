@@ -555,7 +555,7 @@ void FFT3dGPU::SigmaToPatternTexture(float sigma, float sigma2, float sigma3, fl
 			}
 		}
 	}
-	offset=0;
+	int offset=0;
 	for(unsigned int repy=0;repy<ny;repy++)
 		for(unsigned int j=0;j<bh;j++)
 			for(unsigned int repx=0;repx<nx;repx++)
