@@ -661,8 +661,25 @@ void FFT2dRR::CreateLoadMap(float *Map,unsigned int n,unsigned int rep){
  * Remarks:
  *	   taken from http://www.df.lth.se/~john_e/gems/gem0018.html
  */
+int FFT2dRR::ReverseBit_c(int data2invert, unsigned char revbits) {
+  unsigned int  NO_OF_BITS = sizeof(data2invert) * 8;
+  unsigned int reverse_num = 0, i, temp;
+
+  for (i = 0; i < NO_OF_BITS; i++)
+  {
+    temp = (data2invert & (1 << i));
+    if (temp)
+      reverse_num |= (1 << ((NO_OF_BITS - 1) - i));
+  }
+
+  return reverse_num;
+}
+
 int FFT2dRR::ReverseBit(int data2invert,unsigned char revbits){
-	int retval;
+#if _M_X64
+  return ReverseBit_c(data2invert, revbits);
+#else
+  int retval;
 	__asm{
 	    xor     eax,eax
         mov     ebx,data2invert ; your input data
@@ -675,6 +692,7 @@ revloop:
 		mov		retval,eax
 	}
 	return retval;
+#endif
 }
 
 /*

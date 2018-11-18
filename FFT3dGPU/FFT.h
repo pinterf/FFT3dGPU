@@ -58,7 +58,8 @@ protected:
 	void CreateTwiddleMap(float *Map,unsigned int n,bool forward,unsigned int rep);
 	void CreateBitReverseMap(float *Map,unsigned int n,unsigned int rep);
 	int ReverseBit(int data2invert,unsigned char revbits);
-	
+  int ReverseBit_c(int data2invert, unsigned char revbits);
+
 	template <class Type> Type log2(Type n){
 	Type logn=0;
 	for(Type i=n;i>1;i/=2,logn++);
