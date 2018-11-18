@@ -122,13 +122,41 @@ extern std::ofstream outfile;
 //Memory leak detector. Overloads the new operator to display Line and filename of leak if it is a debug build
 	#include <crtdbg.h> 
 
+#ifndef _THROW0
+#define _THROW0()    throw ()
+#endif
 
-	_C_LIB_DECL
-	int __cdecl _callnewh(size_t size) _THROW1(_STD bad_alloc);
-	_END_C_LIB_DECL
+#ifndef _THROW1
+#define _THROW1(x)    throw (x)
+#endif
 
-	void *__cdecl operator new(size_t size,const char* file,int line) _THROW1(_STD bad_alloc);
-//void __cdecl operator delete(void *pUserData,const char* file,int line) _THROW1(_STD bad_alloc);
+#ifndef _THROW
+#define _THROW(x, y)    throw x(y)
+#endif
+
+#ifdef __cplusplus
+#include <cstdlib>
+#include <new>
+#else
+#include <stddef.h>
+#include <stdint.h>
+#endif /* __cplusplus */
+
+/* NAMING PROPERTIES */
+#if defined(__cplusplus)
+#define _C_LIB_DECL extern "C" {
+#define _END_C_LIB_DECL }
+#else
+#define _C_LIB_DECL
+#define _END_C_LIB_DECL
+#endif /* __cplusplus */
+
+_C_LIB_DECL
+int __cdecl _callnewh(size_t size) throw(std::bad_alloc);
+_END_C_LIB_DECL
+
+void *__cdecl operator new(size_t size, const char* file, int line) throw(std::bad_alloc);
+//void __cdecl operator delete(void *pUserData,const char* file,int line) throw(std::bad_alloc);
 
 	#define NEW  new(__FILE__,__LINE__)
 #else

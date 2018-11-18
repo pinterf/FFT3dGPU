@@ -51,12 +51,16 @@ void WriteMemFixedToFile(const unsigned char* src,int width,int height,int elems
 }
 
 #ifdef _DEBUG
-void *__cdecl operator new(size_t size,const char* file,int line) _THROW1(_STD bad_alloc)
+// Remark for C4290 warning:
+// A function is declared using exception specification, which Visual C++ accepts but does not 
+// implement.Code with exception specifications that are ignored during compilation may need to 
+// be recompiled and linked to be reused in future versions supporting exception specifications.
+void *__cdecl operator new(size_t size,const char* file,int line) throw(std::bad_alloc)
 	{	// try to allocate size bytes
 	void *p;
-	while ((p = _malloc_dbg(size,_NORMAL_BLOCK,file,line)) == 0)
-		if (_callnewh(size) == 0)
-			_STD _Nomemory();
+  while ((p = _malloc_dbg(size, _NORMAL_BLOCK, file, line)) == 0)
+    if (_callnewh(size) == 0)
+      std::bad_alloc();
 	return (p);
 	}
 
@@ -76,7 +80,7 @@ void *__cdecl operator new(size_t size,const char* file,int line) _THROW1(_STD b
 
 #endif
 
-	LARGE_INTEGER timerB;
+LARGE_INTEGER timerB;
 LARGE_INTEGER timerA;
 LARGE_INTEGER clockpersec;
 int _s_init_clockpersec=QueryPerformanceFrequency(&clockpersec);
