@@ -1230,8 +1230,16 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
 }
 
 
+// The following function is the function that actually registers the filter in AviSynth
+// It is called automatically, when the plugin is loaded to see which functions this filter contains.
 
-extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit2(IScriptEnvironment* env) {
+// new V2.6 requirement
+const AVS_Linkage *AVS_linkage = NULL;
+
+extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, const AVS_Linkage* const vectors) {
+
+  AVS_linkage = vectors;
+
 	LOG("AvisynthPluginInit2:"<<std::endl)
 	env->AddFunction("fft3dGPU", "c[sigma]f[beta]f[bw]i[bh]i[bt]i[sharpen]f[plane]i[mode]i[bordersize]i[precision]i[NVPerf]b[degrid]f[scutoff]f[svr]f[smin]f[smax]f[kratio]f[ow]i[oh]i[wintype]i[interlaced]b[sigma2]f[sigma3]f[sigma4]f[oldfft]b", Create_fft3dGPU, 0);
 	LOG("AvisynthPluginInit2 Addfunction done");
