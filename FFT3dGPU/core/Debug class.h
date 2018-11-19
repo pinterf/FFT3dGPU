@@ -65,15 +65,15 @@
 // up in the D3DUtils namespace.
 namespace D3DUtils
 {
-	class ScopeProfiler
-	{
-		public:
-			ScopeProfiler( WCHAR *Name, int Line );
-			~ScopeProfiler( );
+  class ScopeProfiler
+  {
+  public:
+    ScopeProfiler(WCHAR *Name, int Line);
+    ~ScopeProfiler();
 
-		private:
-			ScopeProfiler( );
-	};
+  private:
+    ScopeProfiler();
+  };
 }
 
 #else
@@ -88,20 +88,20 @@ namespace D3DUtils
 
 #if defined(DEBUG) | defined(_DEBUG) | defined(DEBUG_RETVAL)
 //	#define D3D_DEBUG_INFO
-    #define V( x )\
+#define V( x )\
         if( FAILED(x) )\
         {\
 		DXTrace(__FILE__,__LINE__,x,__FUNCTION__,true);\
         }
-    #define V_RETURN( x )\
+#define V_RETURN( x )\
         if( FAILED(x) )\
         {\
             return DXTrace(__FILE__,__LINE__,x,__FUNCTION__,true);\
         }
 #else
-    #define V(x)\
+#define V(x)\
         x;
-    #define V_RETURN(x)\
+#define V_RETURN(x)\
     if( FAILED(x) )\
         {\
             return x;\
@@ -120,7 +120,7 @@ extern std::ofstream outfile;
 
 
 //Memory leak detector. Overloads the new operator to display Line and filename of leak if it is a debug build
-	#include <crtdbg.h> 
+#include <crtdbg.h> 
 
 #ifndef _THROW0
 #define _THROW0()    throw ()
@@ -158,59 +158,59 @@ _END_C_LIB_DECL
 void *__cdecl operator new(size_t size, const char* file, int line) throw(std::bad_alloc);
 //void __cdecl operator delete(void *pUserData,const char* file,int line) throw(std::bad_alloc);
 
-	#define NEW  new(__FILE__,__LINE__)
+#define NEW  new(__FILE__,__LINE__)
 #else
-	#define NEW  new
+#define NEW  new
 #endif
 
 template <class CharT, class TraitsT = std::char_traits<CharT> >
-class basic_debugbuf : 
-    public std::basic_stringbuf<CharT, TraitsT>
+class basic_debugbuf :
+  public std::basic_stringbuf<CharT, TraitsT>
 {
 public:
 
-    virtual ~basic_debugbuf()
-    {
-        sync();
-    }
+  virtual ~basic_debugbuf()
+  {
+    sync();
+  }
 
 protected:
 
-    int sync()
-    {
-        output_debug_string(str().c_str());
-        str(std::basic_string<CharT>());    // Clear the string buffer
+  int sync()
+  {
+    output_debug_string(str().c_str());
+    str(std::basic_string<CharT>());    // Clear the string buffer
 
-        return 0;
-    }
+    return 0;
+  }
 
-    void output_debug_string(const CharT *text) {}
+  void output_debug_string(const CharT *text) {}
 };
 
 template<>
 void basic_debugbuf<char>::output_debug_string(const char *text)
 {
-    ::OutputDebugStringA(text);
+  ::OutputDebugStringA(text);
 }
 
 template<>
 void basic_debugbuf<wchar_t>::output_debug_string(const wchar_t *text)
 {
-    ::OutputDebugStringW(text);
+  ::OutputDebugStringW(text);
 }
 
 template<class CharT, class TraitsT = std::char_traits<CharT> >
-class basic_dostream : 
-    public std::basic_ostream<CharT, TraitsT>
+class basic_dostream :
+  public std::basic_ostream<CharT, TraitsT>
 {
 public:
 
-    basic_dostream() : std::basic_ostream<CharT, TraitsT>
-                (new basic_debugbuf<CharT, TraitsT>()) {}
-    ~basic_dostream() 
-    {
-        delete rdbuf(); 
-    }
+  basic_dostream() : std::basic_ostream<CharT, TraitsT>
+    (new basic_debugbuf<CharT, TraitsT>()) {}
+  ~basic_dostream()
+  {
+    delete rdbuf();
+  }
 };
 
 typedef basic_dostream<char>    dostream;
@@ -222,6 +222,6 @@ void Qend();
 
 double Qendtime();
 
-void WriteMemFixedToFile(const unsigned char* src,int width,int height,int elemsize,const char* SaveFilename,const char* Tittle,bool append);
-void WriteMemFloatToFile(float* src,int width,int height,int elemsize,const char* SaveFilename,const char* Tittle,bool append);
+void WriteMemFixedToFile(const unsigned char* src, int width, int height, int elemsize, const char* SaveFilename, const char* Tittle, bool append);
+void WriteMemFloatToFile(float* src, int width, int height, int elemsize, const char* SaveFilename, const char* Tittle, bool append);
 #endif

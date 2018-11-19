@@ -23,19 +23,19 @@
 
 class TexturePool {
 public:
-	TexturePool(LPDIRECT3DDEVICE9 pDevice,int width,int height,Types& type);
-	~TexturePool();
-	TextureRT* top();
-	void pop();
-	void pop(TextureRT* &texture);
-	void pop(pTextureRTpair &texture);
-	void push(TextureRT* &texture);
-	void push(pTextureRTpair &texture);
+  TexturePool(LPDIRECT3DDEVICE9 pDevice, int width, int height, Types& type);
+  ~TexturePool();
+  TextureRT* top();
+  void pop();
+  void pop(TextureRT* &texture);
+  void pop(pTextureRTpair &texture);
+  void push(TextureRT* &texture);
+  void push(pTextureRTpair &texture);
 protected:
-	std::stack<TextureRT*> TextureStack;
-	Types _type;
-	int _height;
-	int _width;
-	LPDIRECT3DDEVICE9 _pDevice;
+  std::stack<TextureRT*> TextureStack;
+  Types _type;
+  int _height;
+  int _width;
+  LPDIRECT3DDEVICE9 _pDevice;
 };
 

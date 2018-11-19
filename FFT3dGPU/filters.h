@@ -25,102 +25,102 @@
 #include "windows.h"
 
 
-class ImgStream{
+class ImgStream {
 public:
-ImgStream(unsigned int x,unsigned int xnum,unsigned int y,unsigned int ynum,int mode,unsigned int width,unsigned int height,LPDIRECT3DDEVICE9 _pDevice,GPUTYPES* _gtype,bool _useHalf,HRESULT &hr,int border=0);
+  ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned int ynum, int mode, unsigned int width, unsigned int height, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, HRESULT &hr, int border = 0);
 
 
-~ImgStream();
-void ImgToStream(Texture* src,pTextureRTpair *dst);
-void ImgToStream(Texture* src,TextureRT* dst);
+  ~ImgStream();
+  void ImgToStream(Texture* src, pTextureRTpair *dst);
+  void ImgToStream(Texture* src, TextureRT* dst);
 
-void StreamToImg(Texture* src,TextureRT* dst);
-void StreamToImg(pTextureRTpair *src,TextureRT* dst);
+  void StreamToImg(Texture* src, TextureRT* dst);
+  void StreamToImg(pTextureRTpair *src, TextureRT* dst);
 
-static void CreateFactorMap(float* Map,unsigned int x,unsigned int xnum,unsigned int y,unsigned int ynum,bool full);	
+  static void CreateFactorMap(float* Map, unsigned int x, unsigned int xnum, unsigned int y, unsigned int ynum, bool full);
 protected:
-void CreateFactorMapBorder(float* Map,int x,int y,int border);	
-	TextureM *FactorLUT;
-	//TextureM *Img;
-	TextureRT *Imgd;
-	psImg2toFloat4 *Img2toFloat4;
-	psFloat4toImg2 *Float4toImg2;
-	psImg2toFloat4_2 *Img2toFloat4_2;
-	psFloat4toImg2_2 *Float4toImg2_2;
-	
-	psImg2toImg4* conv;
+  void CreateFactorMapBorder(float* Map, int x, int y, int border);
+  TextureM *FactorLUT;
+  //TextureM *Img;
+  TextureRT *Imgd;
+  psImg2toFloat4 *Img2toFloat4;
+  psFloat4toImg2 *Float4toImg2;
+  psImg2toFloat4_2 *Img2toFloat4_2;
+  psFloat4toImg2_2 *Float4toImg2_2;
 
-	unsigned int lastpitch;
-	unsigned int bw,bh;
+  psImg2toImg4* conv;
 
-	LPDIRECT3DDEVICE9 pDevice;
-	GPUTYPES* gtype;
+  unsigned int lastpitch;
+  unsigned int bw, bh;
+
+  LPDIRECT3DDEVICE9 pDevice;
+  GPUTYPES* gtype;
 
 
-//psFFTtoFixed* FFTtoFixed;
+  //psFFTtoFixed* FFTtoFixed;
 };
 
 class ImgStream2
 {
 public:
-	ImgStream2(unsigned int bw,unsigned int bh,int ow,int oh,Texture* src,TextureRT* fdst,TextureRT* dst,bool chroma,int wintype,bool interlaced,LPDIRECT3DDEVICE9 _pDevice,GPUTYPES* _gtype,bool _useHalf,HRESULT &hr);
-	~ImgStream2();
-	void ImgToTexture(Texture* src,pTextureRTpair *dst);
-	void TextureToImg(pTextureRTpair *src,TextureRT* dst);
-	void TextureToSrc(pTextureRTpair *src,UCHAR* dst,int pitch);
+  ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture* src, TextureRT* fdst, TextureRT* dst, bool chroma, int wintype, bool interlaced, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, HRESULT &hr);
+  ~ImgStream2();
+  void ImgToTexture(Texture* src, pTextureRTpair *dst);
+  void TextureToImg(pTextureRTpair *src, TextureRT* dst);
+  void TextureToSrc(pTextureRTpair *src, UCHAR* dst, int pitch);
 protected:
-	void CreateFactorMap(float* MapAna,float* MapSyn,unsigned int bw,unsigned int bh,int ow,int oh,int wintype);
+  void CreateFactorMap(float* MapAna, float* MapSyn, unsigned int bw, unsigned int bh, int ow, int oh, int wintype);
 
-	TextureM *FactorLUTana;
-	TextureM *FactorLUTsyn;
-	psImg2ToFloat4* i2f;
-	psFloat4ToImg2* f2i; 
-	TextureRT *Imgd;
-	
-	psImg2toImg4* conv;
-	LPDIRECT3DDEVICE9 pDevice;
-	GPUTYPES* gtype;
+  TextureM *FactorLUTana;
+  TextureM *FactorLUTsyn;
+  psImg2ToFloat4* i2f;
+  psFloat4ToImg2* f2i;
+  TextureRT *Imgd;
+
+  psImg2toImg4* conv;
+  LPDIRECT3DDEVICE9 pDevice;
+  GPUTYPES* gtype;
 };
 
-class KalmanFilter{
+class KalmanFilter {
 public:
-	KalmanFilter(TexturePool *_StreamPoolPointer,float sigmaSquaredNoiseNormed2D,float kratio,bool useTexturepair,LPDIRECT3DDEVICE9 _pDevice);
-	KalmanFilter(TexturePool *_StreamPoolPointer,float kratio,bool useTexturepair,LPDIRECT3DDEVICE9 _pDevice,TextureM *pattern);
-	~KalmanFilter();
-	void Filter(Texture* src,TextureRT* dst);
-	void Filter(pTextureRTpair* src,pTextureRTpair* dst);
-	void Restore();
+  KalmanFilter(TexturePool *_StreamPoolPointer, float sigmaSquaredNoiseNormed2D, float kratio, bool useTexturepair, LPDIRECT3DDEVICE9 _pDevice);
+  KalmanFilter(TexturePool *_StreamPoolPointer, float kratio, bool useTexturepair, LPDIRECT3DDEVICE9 _pDevice, TextureM *pattern);
+  ~KalmanFilter();
+  void Filter(Texture* src, TextureRT* dst);
+  void Filter(pTextureRTpair* src, pTextureRTpair* dst);
+  void Restore();
 protected:
-	void Init(bool useTexturepair);
-	psKalman* ps;
-	LPDIRECT3DDEVICE9 pDevice;
-	TexturePool *StreamPoolPointer;
-	TextureRT* covar1;
-	pTextureRTpair* covar1d;
-	TextureRT* covar2;
-	pTextureRTpair* covar2d;
-	TextureRT* covarprocess1;
-	pTextureRTpair* covarprocess1d;
-	TextureRT* covarprocess2;
-	pTextureRTpair* covarprocess2d;
-	Texture* last;
-	pTextureRTpair* lastd;
-	TextureM* _pattern;
-	float _sigmaSquaredNoiseNormed2D;
+  void Init(bool useTexturepair);
+  psKalman* ps;
+  LPDIRECT3DDEVICE9 pDevice;
+  TexturePool *StreamPoolPointer;
+  TextureRT* covar1;
+  pTextureRTpair* covar1d;
+  TextureRT* covar2;
+  pTextureRTpair* covar2d;
+  TextureRT* covarprocess1;
+  pTextureRTpair* covarprocess1d;
+  TextureRT* covarprocess2;
+  pTextureRTpair* covarprocess2d;
+  Texture* last;
+  pTextureRTpair* lastd;
+  TextureM* _pattern;
+  float _sigmaSquaredNoiseNormed2D;
 };
 
-class Sharpen{
+class Sharpen {
 public:
-	Sharpen(float strength,float svr,float scutoff,float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax, 
-	unsigned int _x,unsigned int _xnum,unsigned int _y,unsigned int _ynum,bool degrid,TexturePool *StreamPoolPointer,HRESULT &hr,
-	LPDIRECT3DDEVICE9 pDevice,GPUTYPES* gtype);
-	Sharpen::~Sharpen();
-	void Filter(TextureRT* src,TextureRT* (&dst),TextureRT* degrid=0);
-	void Filter(pTextureRTpair* src,pTextureRTpair* dst,pTextureRTpair* degrid=0);
+  Sharpen(float strength, float svr, float scutoff, float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax,
+    unsigned int _x, unsigned int _xnum, unsigned int _y, unsigned int _ynum, bool degrid, TexturePool *StreamPoolPointer, HRESULT &hr,
+    LPDIRECT3DDEVICE9 pDevice, GPUTYPES* gtype);
+  Sharpen::~Sharpen();
+  void Filter(TextureRT* src, TextureRT* (&dst), TextureRT* degrid = 0);
+  void Filter(pTextureRTpair* src, pTextureRTpair* dst, pTextureRTpair* degrid = 0);
 protected:
-	//float Strength;
-	TextureM* FilterLUT;
-	psSharpen* Sharp;
-	TexturePool *FreeStreamPool;
+  //float Strength;
+  TextureM* FilterLUT;
+  psSharpen* Sharp;
+  TexturePool *FreeStreamPool;
 };
 

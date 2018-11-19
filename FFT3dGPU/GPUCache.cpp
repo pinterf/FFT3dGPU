@@ -25,7 +25,7 @@
 
 #include "GPUCache.h"
 
-GPUCache* GPUCache::first=0;
+GPUCache* GPUCache::first = 0;
 
 /*
  * GPUCache
@@ -42,20 +42,20 @@ GPUCache* GPUCache::first=0;
  *		It has this structure List->1->2->3->4 where the number is the age of the object(1=newest)
  */
 GPUCache::GPUCache(int cachesize)
-	:_maxcachesize(cachesize),_cachesize(0),List(0)
+  :_maxcachesize(cachesize), _cachesize(0), List(0)
 {
-	if(first){
-        first->prev->next=this;
-		this->prev=first->prev;
-		this->next=first;
-		first->prev=this;
-	}
-	else
-	{
-		first=this;
-		this->prev=this;
-		this->next=this;
-	}
+  if (first) {
+    first->prev->next = this;
+    this->prev = first->prev;
+    this->next = first;
+    first->prev = this;
+  }
+  else
+  {
+    first = this;
+    this->prev = this;
+    this->next = this;
+  }
 }
 
 /*
@@ -70,30 +70,30 @@ GPUCache::GPUCache(int cachesize)
  *     None
  *
  *	Remarks:
- *		
+ *
  */
-void GPUCache::AddtoCache(int n,TextureRT* stream){
-	//List->1->2->3
-    GPUCacheNode* temp=List;	//Temp->1->2->3
-	List=NEW GPUCacheNode(stream,n,_StreamPool);//List->0
-	List->next(temp);//List->0->1->2->3
-	//if list length> cachesize
-	if(_cachesize==_maxcachesize)
-		deletelast(List);//delete last
-	else
-		_cachesize++;//else inc size
+void GPUCache::AddtoCache(int n, TextureRT* stream) {
+  //List->1->2->3
+  GPUCacheNode* temp = List;	//Temp->1->2->3
+  List = NEW GPUCacheNode(stream, n, _StreamPool);//List->0
+  List->next(temp);//List->0->1->2->3
+  //if list length> cachesize
+  if (_cachesize == _maxcachesize)
+    deletelast(List);//delete last
+  else
+    _cachesize++;//else inc size
 }
 
-void GPUCache::AddtoCache(int n,pTextureRTpair* stream){
-	//List->1->2->3
-    GPUCacheNode* temp=List;	//Temp->1->2->3
-	List=NEW GPUCacheNode(stream->first,stream->last,n,_StreamPool);//List->0
-	List->next(temp);//List->0->1->2->3
-	//if list length> cachesize
-	if(_cachesize==_maxcachesize)
-		deletelast(List);//delete last
-	else
-		_cachesize++;//else inc size
+void GPUCache::AddtoCache(int n, pTextureRTpair* stream) {
+  //List->1->2->3
+  GPUCacheNode* temp = List;	//Temp->1->2->3
+  List = NEW GPUCacheNode(stream->first, stream->last, n, _StreamPool);//List->0
+  List->next(temp);//List->0->1->2->3
+  //if list length> cachesize
+  if (_cachesize == _maxcachesize)
+    deletelast(List);//delete last
+  else
+    _cachesize++;//else inc size
 }
 /*
  * deletelast
@@ -103,23 +103,23 @@ void GPUCache::AddtoCache(int n,pTextureRTpair* stream){
  * Inputs:
  *		node:[in] node to test.
  * Returns:
- *     true if node=last node 
+ *     true if node=last node
  *		else false
  *
  *	Remarks:
- *		
+ *
  */
-bool GPUCache::deletelast(GPUCacheNode* node){
-	if(node->next()==0){
-		if(List==node)
-			List=0;
-		delete node;
-        return true;
-	}
-	if(deletelast(node->next()))
-		node->next(0);
-	return false;
-	
+bool GPUCache::deletelast(GPUCacheNode* node) {
+  if (node->next() == 0) {
+    if (List == node)
+      List = 0;
+    delete node;
+    return true;
+  }
+  if (deletelast(node->next()))
+    node->next(0);
+  return false;
+
 }
 
 /*
@@ -132,13 +132,13 @@ bool GPUCache::deletelast(GPUCacheNode* node){
  * Returns:
   *
  *	Remarks:
- *		
+ *
  */
-void GPUCache::deleteall(GPUCacheNode* node){
-	if(!node)
-		return;
-	deleteall(node->next());
-	delete node;
+void GPUCache::deleteall(GPUCacheNode* node) {
+  if (!node)
+    return;
+  deleteall(node->next());
+  delete node;
 }
 
 /*
@@ -151,77 +151,77 @@ void GPUCache::deleteall(GPUCacheNode* node){
  * Returns:
  *		object
  *	Remarks:
- *		
+ *
  */
 
-bool GPUCache::GetStream(int n,pTextureRTpair* texture){
-	GPUCacheNode* temp=List;
-	if(texture->first)
-		texture->first->Release();
-	if(texture->last)
-		texture->last->Release();
-	while(temp!=0){
-		if(temp->n()==n){
-			temp->stream(texture->first,texture->last);
-            texture->first->AddRef();
-			texture->last->AddRef();
-			return true;
-		}
-	temp=temp->next();
-	}
-	texture->first=0;
-	texture->last=0;
-	return false;
+bool GPUCache::GetStream(int n, pTextureRTpair* texture) {
+  GPUCacheNode* temp = List;
+  if (texture->first)
+    texture->first->Release();
+  if (texture->last)
+    texture->last->Release();
+  while (temp != 0) {
+    if (temp->n() == n) {
+      temp->stream(texture->first, texture->last);
+      texture->first->AddRef();
+      texture->last->AddRef();
+      return true;
+    }
+    temp = temp->next();
+  }
+  texture->first = 0;
+  texture->last = 0;
+  return false;
 }
 
-bool GPUCache::GetStream(int n,TextureRT* &texture){
-	GPUCacheNode* temp=List;
-	if(texture)
-		texture->Release();
-	while(temp!=0){
-		if(temp->n()==n){
-			temp->stream(texture);
-            texture->AddRef();
-			return true;
-		}
-	temp=temp->next();
-	}
-	texture=0;
-	return false;
+bool GPUCache::GetStream(int n, TextureRT* &texture) {
+  GPUCacheNode* temp = List;
+  if (texture)
+    texture->Release();
+  while (temp != 0) {
+    if (temp->n() == n) {
+      temp->stream(texture);
+      texture->AddRef();
+      return true;
+    }
+    temp = temp->next();
+  }
+  texture = 0;
+  return false;
 }
 
 
 
 void GPUCache::FlushCache()
 {
-	deleteall(List);
-	List=0;
-	_cachesize=0;
+  deleteall(List);
+  List = 0;
+  _cachesize = 0;
 }
 
 
 void GPUCache::FlushAll()
 {
-	if(!first)
-		return;
-	GPUCache* temp=first;
-	do
-	{
-		temp->FlushCache();
-		temp=temp->next;
-	}
-	while(temp!=first);
+  if (!first)
+    return;
+  GPUCache* temp = first;
+  do
+  {
+    temp->FlushCache();
+    temp = temp->next;
+  } while (temp != first);
 }
 
 
-GPUCache::~GPUCache(){deleteall(List);
-if(next==this)
-first=0;
-else
-{
-	if(first==this)
-		first=next;
-	prev->next=next;
-	next->prev=prev;
-}
+GPUCache::~GPUCache() {
+  deleteall(List);
+  if (next == this)
+    first = 0;
+  else
+  {
+    if (first == this)
+      first = next;
+    prev->next = next;
+    next->prev = prev;
+  }
 }

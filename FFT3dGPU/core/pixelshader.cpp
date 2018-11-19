@@ -53,34 +53,34 @@ extern HINSTANCE HM;
  *	Remarks:
  *		None
  */
-Pixelshader::Pixelshader(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs)
-:Shader( pDevice, pSrcFile,  pFunctionName, pProfile,defs)
+Pixelshader::Pixelshader(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs)
+  :Shader(pDevice, pSrcFile, pFunctionName, pProfile, defs)
 {
 
 #ifdef _DEBUG
-OutputDebugString("Creating pixelshader ");
-OutputDebugString(pFunctionName);
-OutputDebugString("\n");
+  OutputDebugString("Creating pixelshader ");
+  OutputDebugString(pFunctionName);
+  OutputDebugString("\n");
 #endif
-if(!pShader)
-	return;
-_pDevice->CreatePixelShader((DWORD*)pShader->GetBufferPointer(),&_pPixelShader);
-if(pShader)
-	pShader->Release();
-pShader=0;
+  if (!pShader)
+    return;
+  _pDevice->CreatePixelShader((DWORD*)pShader->GetBufferPointer(), &_pPixelShader);
+  if (pShader)
+    pShader->Release();
+  pShader = 0;
 }
 
 
-Pixelshader::~Pixelshader(){
+Pixelshader::~Pixelshader() {
 #ifdef _DEBUG
-	OutputDebugString("Releasing pixelshader\n");
-	cerrwin<<std::endl<<"_pPixelShader RefCount: "<<_pPixelShader->Release()<<std::endl;
+  OutputDebugString("Releasing pixelshader\n");
+  cerrwin << std::endl << "_pPixelShader RefCount: " << _pPixelShader->Release() << std::endl;
 #else
-	_pPixelShader->Release();
+  _pPixelShader->Release();
 #endif
-	_pPixelShader=0;
+  _pPixelShader = 0;
 }
-	
+
 /*
  * SetActive
  *
@@ -94,7 +94,7 @@ Pixelshader::~Pixelshader(){
  *	Remarks:
  *		None
  */
-HRESULT Pixelshader::SetActive(){
-	return _pDevice->SetPixelShader(_pPixelShader);
+HRESULT Pixelshader::SetActive() {
+  return _pDevice->SetPixelShader(_pPixelShader);
 }
 

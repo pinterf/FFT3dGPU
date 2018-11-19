@@ -21,47 +21,47 @@
 
 #include "./core/texture.h"
 
-class GPUCacheNode{
+class GPUCacheNode {
 public:
-	GPUCacheNode(TextureRT *stream1,TextureRT *stream2,int n,TexturePool *StreamPool):_next(0),_stream1(stream1),_stream2(stream2),_n(n),_StreamPool(StreamPool){_stream1->AddRef();_stream2->AddRef();}
-	GPUCacheNode(TextureRT *stream,int n,TexturePool *StreamPool):_next(0),_stream1(stream),_stream2(0),_n(n),_StreamPool(StreamPool){_stream1->AddRef();}
-	GPUCacheNode* next(){return _next;}
-	void next(GPUCacheNode* next){_next=next;}
-	int n(){return _n;}
-	void stream(TextureRT* &texture1,TextureRT* &texture2){texture1=_stream1;texture2=_stream2;}
-	void stream(TextureRT* &texture){texture=_stream1;}
-	~GPUCacheNode(){ /*delete _stream;*/ _StreamPool->push(_stream1);if(_stream2)_StreamPool->push(_stream2);}
+  GPUCacheNode(TextureRT *stream1, TextureRT *stream2, int n, TexturePool *StreamPool) :_next(0), _stream1(stream1), _stream2(stream2), _n(n), _StreamPool(StreamPool) { _stream1->AddRef(); _stream2->AddRef(); }
+  GPUCacheNode(TextureRT *stream, int n, TexturePool *StreamPool) :_next(0), _stream1(stream), _stream2(0), _n(n), _StreamPool(StreamPool) { _stream1->AddRef(); }
+  GPUCacheNode* next() { return _next; }
+  void next(GPUCacheNode* next) { _next = next; }
+  int n() { return _n; }
+  void stream(TextureRT* &texture1, TextureRT* &texture2) { texture1 = _stream1; texture2 = _stream2; }
+  void stream(TextureRT* &texture) { texture = _stream1; }
+  ~GPUCacheNode() { /*delete _stream;*/ _StreamPool->push(_stream1); if (_stream2)_StreamPool->push(_stream2); }
 private:
-	GPUCacheNode* _next;
-	TextureRT* _stream1;
-	TextureRT* _stream2;
-	int _n;
-	TexturePool *_StreamPool;
+  GPUCacheNode* _next;
+  TextureRT* _stream1;
+  TextureRT* _stream2;
+  int _n;
+  TexturePool *_StreamPool;
 };
 
 
 class GPUCache {
 public:
-	GPUCache(int cachesize);
-	//~GPUCache(){deleteall(List);}
-	~GPUCache();
-	//bool InCache(int n);
-	void StreamPoolPointer(TexturePool *StreamPool){_StreamPool=StreamPool;}
-	void AddtoCache(int n,TextureRT *stream);
-	void AddtoCache(int n,pTextureRTpair *stream);
-	void FlushCache();
-	static void FlushAll();
-	bool GetStream(int n,TextureRT* &texture);
-	bool GetStream(int n,pTextureRTpair* texture);
+  GPUCache(int cachesize);
+  //~GPUCache(){deleteall(List);}
+  ~GPUCache();
+  //bool InCache(int n);
+  void StreamPoolPointer(TexturePool *StreamPool) { _StreamPool = StreamPool; }
+  void AddtoCache(int n, TextureRT *stream);
+  void AddtoCache(int n, pTextureRTpair *stream);
+  void FlushCache();
+  static void FlushAll();
+  bool GetStream(int n, TextureRT* &texture);
+  bool GetStream(int n, pTextureRTpair* texture);
 private:
-	int _cachesize;
-	int _maxcachesize;
-	GPUCacheNode* List; 
-	TexturePool *_StreamPool;
+  int _cachesize;
+  int _maxcachesize;
+  GPUCacheNode* List;
+  TexturePool *_StreamPool;
 
-	bool deletelast(GPUCacheNode* node);
-	void deleteall(GPUCacheNode* node);
-	static GPUCache* first;
-	GPUCache* prev;
-	GPUCache* next;
+  bool deletelast(GPUCacheNode* node);
+  void deleteall(GPUCacheNode* node);
+  static GPUCache* first;
+  GPUCache* prev;
+  GPUCache* next;
 };

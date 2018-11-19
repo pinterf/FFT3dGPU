@@ -21,67 +21,67 @@
 #include "./core/Debug class.h"
 #include "TexturePool.h"
 
-TexturePool::TexturePool(LPDIRECT3DDEVICE9 pDevice,int width,int height,Types& type):_pDevice(pDevice),_width(width),_height(height),_type(type){}
+TexturePool::TexturePool(LPDIRECT3DDEVICE9 pDevice, int width, int height, Types& type) :_pDevice(pDevice), _width(width), _height(height), _type(type) {}
 
 
-TexturePool::~TexturePool(){
-  while(!TextureStack.empty()){
-	  delete TextureStack.top();
-	  TextureStack.pop();
+TexturePool::~TexturePool() {
+  while (!TextureStack.empty()) {
+    delete TextureStack.top();
+    TextureStack.pop();
   }
 };
 
-TextureRT* TexturePool::top(){
-	if(TextureStack.empty())
-	{
-	HRESULT hr;
-	TextureStack.push(NEW TextureRT(_pDevice,_width,_height,_type,hr));
-	//
-	}
-	return TextureStack.top();
+TextureRT* TexturePool::top() {
+  if (TextureStack.empty())
+  {
+    HRESULT hr;
+    TextureStack.push(NEW TextureRT(_pDevice, _width, _height, _type, hr));
+    //
+  }
+  return TextureStack.top();
 }
 
 void TexturePool::pop()
 {
-	TextureStack.pop();
+  TextureStack.pop();
 }
 
 void TexturePool::push(TextureRT *&texture)
 {
-	TextureStack.push(texture);
-	texture=0;
+  TextureStack.push(texture);
+  texture = 0;
 }
 
 void TexturePool::pop(TextureRT* &texture)
 {
-	if(TextureStack.empty())
-	{
-	HRESULT hr;
-	TextureStack.push(NEW TextureRT(_pDevice,_width,_height,_type,hr));
-	//
-	}
-	texture=TextureStack.top();
-	TextureStack.pop();
+  if (TextureStack.empty())
+  {
+    HRESULT hr;
+    TextureStack.push(NEW TextureRT(_pDevice, _width, _height, _type, hr));
+    //
+  }
+  texture = TextureStack.top();
+  TextureStack.pop();
 }
 
 void TexturePool::pop(pTextureRTpair &texture)
 {
 
-	while(TextureStack.size()<2)
-	{
-	HRESULT hr;
-	TextureStack.push(NEW TextureRT(_pDevice,_width,_height,_type,hr));
-	}
-	texture.first=TextureStack.top();
-	TextureStack.pop();
-	texture.last=TextureStack.top();
-	TextureStack.pop();
+  while (TextureStack.size() < 2)
+  {
+    HRESULT hr;
+    TextureStack.push(NEW TextureRT(_pDevice, _width, _height, _type, hr));
+  }
+  texture.first = TextureStack.top();
+  TextureStack.pop();
+  texture.last = TextureStack.top();
+  TextureStack.pop();
 }
 
 void TexturePool::push(pTextureRTpair &texture)
 {
-	TextureStack.push(texture.first);
-	TextureStack.push(texture.last);
-	texture.first=0;
-	texture.last=0;
+  TextureStack.push(texture.first);
+  TextureStack.push(texture.last);
+  texture.first = 0;
+  texture.last = 0;
 }

@@ -25,16 +25,16 @@
 #include "shader.h"
 
 
-class Pixelshader:public Shader {
+class Pixelshader :public Shader {
 public:
-	Pixelshader(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs=0);
-	~Pixelshader();
-	HRESULT SetActive();
-	
+  Pixelshader(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0);
+  ~Pixelshader();
+  HRESULT SetActive();
+
 protected:
-	
-	IDirect3DPixelShader9* _pPixelShader;
-	
+
+  IDirect3DPixelShader9* _pPixelShader;
+
 
 };
 

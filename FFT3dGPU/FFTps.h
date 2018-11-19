@@ -22,241 +22,241 @@
 #include "./core/pixelshader.h"
 
 //*******************************************************************************************
-class psBitReverseButterFly : public Pixelshader{
-	public:
-		psBitReverseButterFly(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs=0);
-		virtual HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2)=0;
+class psBitReverseButterFly : public Pixelshader {
+public:
+  psBitReverseButterFly(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0);
+  virtual HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2) = 0;
 };
 
-class psBitReverseButterFlyH : public psBitReverseButterFly{
-	public:
-		psBitReverseButterFlyH(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sLoadMap;
+class psBitReverseButterFlyH : public psBitReverseButterFly {
+public:
+  psBitReverseButterFlyH(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sLoadMap;
 };
 
-class psBitReverseButterFlyH_MP : public psBitReverseButterFly{
-	public:
-		psBitReverseButterFlyH_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sLoadMap;
-		Pixelshader pass2;
+class psBitReverseButterFlyH_MP : public psBitReverseButterFly {
+public:
+  psBitReverseButterFlyH_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sLoadMap;
+  Pixelshader pass2;
 };
 
-class psBitReverseButterFlyBH : public psBitReverseButterFly{
-	public:
-		psBitReverseButterFlyBH(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float norm,float pixeloffset);
-		HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sLoadMap;
+class psBitReverseButterFlyBH : public psBitReverseButterFly {
+public:
+  psBitReverseButterFlyBH(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float norm, float pixeloffset);
+  HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sLoadMap;
 };
 
-class psBitReverseButterFlyBH_MP : public psBitReverseButterFly{
-	public:
-		psBitReverseButterFlyBH_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float norm,float pixeloffset);
-		HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sLoadMap;
-		Pixelshader pass2;
+class psBitReverseButterFlyBH_MP : public psBitReverseButterFly {
+public:
+  psBitReverseButterFlyBH_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float norm, float pixeloffset);
+  HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sLoadMap;
+  Pixelshader pass2;
 };
 
-class psBitReverseButterFlyV : public psBitReverseButterFly{
-	public:
-		psBitReverseButterFlyV(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sLoadMap;
+class psBitReverseButterFlyV : public psBitReverseButterFly {
+public:
+  psBitReverseButterFlyV(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sLoadMap;
 };
 
-class psBitReverseButterFlyV_MP : public psBitReverseButterFly{
-	public:
-		psBitReverseButterFlyV_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src,Texture *BitReverseLUT,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sLoadMap;
-		Pixelshader pass2;
+class psBitReverseButterFlyV_MP : public psBitReverseButterFly {
+public:
+  psBitReverseButterFlyV_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src, Texture *BitReverseLUT, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sLoadMap;
+  Pixelshader pass2;
 };
 
 
 
-class psC2R : public Pixelshader{
-	public:
-		psC2R(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src,Texture *C2RLUT,TextureRT *dst);
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sFactor;
+class psC2R : public Pixelshader {
+public:
+  psC2R(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src, Texture *C2RLUT, TextureRT *dst);
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sFactor;
 };
 
-class psR2C : public Pixelshader{
-	public:
-		psR2C(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src,Texture *R2CLUT,TextureRT *dst);
-	
-	protected:
-		D3DXHANDLE sSrc;
-		D3DXHANDLE sFactor;
+class psR2C : public Pixelshader {
+public:
+  psR2C(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src, Texture *R2CLUT, TextureRT *dst);
+
+protected:
+  D3DXHANDLE sSrc;
+  D3DXHANDLE sFactor;
 
 };
 
-class psButterflyCollect : public Pixelshader{
-	public:
-		psButterflyCollect(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs=0);
-		virtual HRESULT Apply(Texture* src1,Texture* src2,Texture *TwiddleLUT,Texture *LoadLUT,float stage,TextureRT *dst1,TextureRT *dst2)=0;
+class psButterflyCollect : public Pixelshader {
+public:
+  psButterflyCollect(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0);
+  virtual HRESULT Apply(Texture* src1, Texture* src2, Texture *TwiddleLUT, Texture *LoadLUT, float stage, TextureRT *dst1, TextureRT *dst2) = 0;
 };
 
-class psButterflyCollectH : public psButterflyCollect{
-	public:
-		psButterflyCollectH(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture *TwiddleLUT,Texture *LoadLUT,float stage,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE _stage;
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sFactor;
-		D3DXHANDLE sLoadLUT;
+class psButterflyCollectH : public psButterflyCollect {
+public:
+  psButterflyCollectH(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture *TwiddleLUT, Texture *LoadLUT, float stage, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE _stage;
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sFactor;
+  D3DXHANDLE sLoadLUT;
 };
 
-class psButterflyCollectH_MP : public psButterflyCollect{
-	public:
-		psButterflyCollectH_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture *TwiddleLUT,Texture *LoadLUT,float stage,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE _stage;
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sFactor;
-		D3DXHANDLE sLoadLUT;
-		Pixelshader pass2;
+class psButterflyCollectH_MP : public psButterflyCollect {
+public:
+  psButterflyCollectH_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture *TwiddleLUT, Texture *LoadLUT, float stage, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE _stage;
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sFactor;
+  D3DXHANDLE sLoadLUT;
+  Pixelshader pass2;
 };
 
-class psButterflyCollectV : public psButterflyCollect{
-	public:
-		psButterflyCollectV(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture *TwiddleLUT,Texture *LoadLUT,float stage,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE _stage;
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sFactor;
-		D3DXHANDLE sLoadLUT;
+class psButterflyCollectV : public psButterflyCollect {
+public:
+  psButterflyCollectV(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture *TwiddleLUT, Texture *LoadLUT, float stage, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE _stage;
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sFactor;
+  D3DXHANDLE sLoadLUT;
 };
 
-class psButterflyCollectV_MP : public psButterflyCollect{
-	public:
-		psButterflyCollectV_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget,float pixeloffset);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture *TwiddleLUT,Texture *LoadLUT,float stage,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE _stage;
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sFactor;
-		D3DXHANDLE sLoadLUT;
-		Pixelshader pass2;
+class psButterflyCollectV_MP : public psButterflyCollect {
+public:
+  psButterflyCollectV_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget, float pixeloffset);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture *TwiddleLUT, Texture *LoadLUT, float stage, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE _stage;
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sFactor;
+  D3DXHANDLE sLoadLUT;
+  Pixelshader pass2;
 };
 
-class psCollectH : public Pixelshader{
-	public:
-		psCollectH(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture *src2,Texture *SaveLUT,float stage,TextureRT *dst);
-	protected:
-		D3DXHANDLE _stage;
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sLoadLUT;
+class psCollectH : public Pixelshader {
+public:
+  psCollectH(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture *src2, Texture *SaveLUT, float stage, TextureRT *dst);
+protected:
+  D3DXHANDLE _stage;
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sLoadLUT;
 };
 
-class psCollectV : public Pixelshader{
-	public:
-		psCollectV(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture *src2,Texture *SaveLUT,float stage,TextureRT *dst);
-	protected:
-		D3DXHANDLE _stage;
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sLoadLUT;
+class psCollectV : public Pixelshader {
+public:
+  psCollectV(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture *src2, Texture *SaveLUT, float stage, TextureRT *dst);
+protected:
+  D3DXHANDLE _stage;
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sLoadLUT;
 };
 
 //******************************************************************************************************
 
-class psFFT2 : public Pixelshader{
-	public:
-		virtual HRESULT Apply(Texture* src1,Texture* src2,TextureRT *dst1,TextureRT *dst2)=0;
-		psFFT2(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs=0);
+class psFFT2 : public Pixelshader {
+public:
+  virtual HRESULT Apply(Texture* src1, Texture* src2, TextureRT *dst1, TextureRT *dst2) = 0;
+  psFFT2(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0);
 };
 
-class psFFT2p : public psFFT2{
-	public:
-		psFFT2p(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture* src2,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-}; 
-
-class psFFT2p_MP : public psFFT2{
-	public:
-		psFFT2p_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture* src2,TextureRT *dst1,TextureRT *dst2);
-	protected:
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		Pixelshader pass2;
-}; 
-
-
-class psiFFT2p : public Pixelshader{
-	public:
-		psiFFT2p(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture* src2,TextureRT *dst);
-	protected:
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-}; 
-
-class psFFT3 : public Pixelshader{
-	public:
-		virtual HRESULT Apply(Texture* src1,Texture* src2,Texture* src3,TextureRT *dst1,TextureRT *dst2,TextureRT *dst3)=0;
-		psFFT3(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs=0);
+class psFFT2p : public psFFT2 {
+public:
+  psFFT2p(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture* src2, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
 };
 
-class psFFT3p : public psFFT3{
-	public:
-		psFFT3p(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture* src3,TextureRT *dst1,TextureRT *dst2,TextureRT *dst3);
-	protected:
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sSrc3;
-}; 
+class psFFT2p_MP : public psFFT2 {
+public:
+  psFFT2p_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture* src2, TextureRT *dst1, TextureRT *dst2);
+protected:
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  Pixelshader pass2;
+};
 
-class psFFT3p_MP : public psFFT3{
-	public:
-		psFFT3p_MP(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture* src3,TextureRT *dst1,TextureRT *dst2,TextureRT *dst3);
-	protected:
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sSrc3;
-		Pixelshader pass2;
-		Pixelshader pass3;
-}; 
 
-class psiFFT3p : public Pixelshader{
-	public:
-		psiFFT3p(LPDIRECT3DDEVICE9 pDevice,TextureRT* _Rendertarget);
-		HRESULT Apply(Texture* src1,Texture* src2,Texture* src3,TextureRT *dst);
-	protected:
-		D3DXHANDLE sSrc1;
-		D3DXHANDLE sSrc2;
-		D3DXHANDLE sSrc3;
-}; 
+class psiFFT2p : public Pixelshader {
+public:
+  psiFFT2p(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture* src2, TextureRT *dst);
+protected:
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+};
+
+class psFFT3 : public Pixelshader {
+public:
+  virtual HRESULT Apply(Texture* src1, Texture* src2, Texture* src3, TextureRT *dst1, TextureRT *dst2, TextureRT *dst3) = 0;
+  psFFT3(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0);
+};
+
+class psFFT3p : public psFFT3 {
+public:
+  psFFT3p(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture* src3, TextureRT *dst1, TextureRT *dst2, TextureRT *dst3);
+protected:
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sSrc3;
+};
+
+class psFFT3p_MP : public psFFT3 {
+public:
+  psFFT3p_MP(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture* src3, TextureRT *dst1, TextureRT *dst2, TextureRT *dst3);
+protected:
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sSrc3;
+  Pixelshader pass2;
+  Pixelshader pass3;
+};
+
+class psiFFT3p : public Pixelshader {
+public:
+  psiFFT3p(LPDIRECT3DDEVICE9 pDevice, TextureRT* _Rendertarget);
+  HRESULT Apply(Texture* src1, Texture* src2, Texture* src3, TextureRT *dst);
+protected:
+  D3DXHANDLE sSrc1;
+  D3DXHANDLE sSrc2;
+  D3DXHANDLE sSrc3;
+};
 

@@ -51,44 +51,44 @@ std::list<Shader*> Shader::psList;
  *	Remarks:
  *		None
  */
-Shader::Shader(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs):_pDevice(pDevice),quad(0),macro(defs)
+Shader::Shader(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs) :_pDevice(pDevice), quad(0), macro(defs)
 {
-//Get the directory Fft3dgpu is in
-char Buf[400];
-GetModuleFileName(HM,Buf,400);
-std::string SrcFile(Buf);
-//Removes the filename
-std::basic_string <char>::size_type indexCh2a;
-indexCh2a=SrcFile.find_last_of("\\",SrcFile.size());
-SrcFile.erase(indexCh2a+1,SrcFile.size());
-SrcFile+=pSrcFile;
-HRESULT result;
-LPD3DXBUFFER pDebugMsg;
-//Compile shader
-result=D3DXCompileShaderFromFile(SrcFile.c_str(),defs,NULL,pFunctionName,pProfile,COMPILEOPTION,&pShader,&pDebugMsg,&_pConstantTable);
-//result=D3DXCompileShaderFromResource(NULL,MAKEINTRESOURCE(102),defs,NULL,pFunctionName,pProfile,COMPILEOPTION,&pShader,&pDebugMsg,&_pConstantTable);
-if(pDebugMsg){
-	MessageBox(NULL,(LPCSTR)pDebugMsg->GetBufferPointer(),pFunctionName,MB_ICONWARNING|MB_OK);
-	pDebugMsg->Release();
-	pDebugMsg=0;
-}
+  //Get the directory Fft3dgpu is in
+  char Buf[400];
+  GetModuleFileName(HM, Buf, 400);
+  std::string SrcFile(Buf);
+  //Removes the filename
+  std::basic_string <char>::size_type indexCh2a;
+  indexCh2a = SrcFile.find_last_of("\\", SrcFile.size());
+  SrcFile.erase(indexCh2a + 1, SrcFile.size());
+  SrcFile += pSrcFile;
+  HRESULT result;
+  LPD3DXBUFFER pDebugMsg;
+  //Compile shader
+  result = D3DXCompileShaderFromFile(SrcFile.c_str(), defs, NULL, pFunctionName, pProfile, COMPILEOPTION, &pShader, &pDebugMsg, &_pConstantTable);
+  //result=D3DXCompileShaderFromResource(NULL,MAKEINTRESOURCE(102),defs,NULL,pFunctionName,pProfile,COMPILEOPTION,&pShader,&pDebugMsg,&_pConstantTable);
+  if (pDebugMsg) {
+    MessageBox(NULL, (LPCSTR)pDebugMsg->GetBufferPointer(), pFunctionName, MB_ICONWARNING | MB_OK);
+    pDebugMsg->Release();
+    pDebugMsg = 0;
+  }
 
 }
 
 
-Shader::~Shader(){
-	delete quad;
-	quad=0;
+Shader::~Shader() {
+  delete quad;
+  quad = 0;
 #ifdef _DEBUG
-	OutputDebugString("Releasing Shader\n");
-	cerrwin<<std::endl<<"_pConstantTable RefCount: "<<_pConstantTable->Release()<<std::endl;
+  OutputDebugString("Releasing Shader\n");
+  cerrwin << std::endl << "_pConstantTable RefCount: " << _pConstantTable->Release() << std::endl;
 #else
-	_pConstantTable->Release();
+  _pConstantTable->Release();
 #endif
-	_pConstantTable=0;
-	delete macro;
+  _pConstantTable = 0;
+  delete macro;
 }
-	
+
 
 /*
  * GetSamplerIndex
@@ -107,12 +107,12 @@ UINT Shader::GetSamplerIndex(D3DXHANDLE hConstant)
 {
 
 #ifdef DX9c
-	return _pConstantTable->GetSamplerIndex(hConstant);
+  return _pConstantTable->GetSamplerIndex(hConstant);
 #else
-		 D3DXCONSTANT_DESC hConstDesc;
-	 unsigned int c=1;
-	 _pConstantTable->GetConstantDesc(hConstant,&hConstDesc,&c);
-	return hConstDesc.RegisterIndex;
+  D3DXCONSTANT_DESC hConstDesc;
+  unsigned int c = 1;
+  _pConstantTable->GetConstantDesc(hConstant, &hConstDesc, &c);
+  return hConstDesc.RegisterIndex;
 #endif
 }
 
@@ -124,87 +124,87 @@ UINT Shader::GetSamplerIndex(D3DXHANDLE hConstant)
  *
  * Inputs:
  *		vector:[in] input vector (2d)
- *		name:[in]name of the the definition	
+ *		name:[in]name of the the definition
  *		macroarray:[in][out]input macroarray to put the definition in
  *		offset:[in]the location of this definition inside the array
  * Returns:
  *     Pointer to the input macroarray
  *
  *	Remarks:
- *		
+ *
  */
-D3DXMACRO* Shader::VecToMacroArray(D3DXVECTOR2 &vector,const char* name,D3DXMACRO* macroarray,int offset){
-	std::stringstream ss;
-	static std::string str[5];
-	ss<<"float2("<<std::fixed<<vector.x<<","<<vector.y<<")";
-    str[0+offset]=ss.str();
-	macroarray[0+offset].Name=name;
-	macroarray[0+offset].Definition=str[0+offset].c_str();
-	//macroarray[1+offset].Name=0;
-	//macroarray[1+offset].Definition=0;
-	return macroarray;
+D3DXMACRO* Shader::VecToMacroArray(D3DXVECTOR2 &vector, const char* name, D3DXMACRO* macroarray, int offset) {
+  std::stringstream ss;
+  static std::string str[5];
+  ss << "float2(" << std::fixed << vector.x << "," << vector.y << ")";
+  str[0 + offset] = ss.str();
+  macroarray[0 + offset].Name = name;
+  macroarray[0 + offset].Definition = str[0 + offset].c_str();
+  //macroarray[1+offset].Name=0;
+  //macroarray[1+offset].Definition=0;
+  return macroarray;
 }
 
 /*
  * FloatToMacroArray
  *
  *		Converts a float to a macroarray to be used in the preprocessor definition #define name f
- *		
+ *
  *
  * Inputs:
  *		f:[in] input float
- *		name:[in]name of the the definition	
+ *		name:[in]name of the the definition
  *		macroarray:[in][out]input macroarray to put the definition in
  *		offset:[in]the location of this definition inside the array
  * Returns:
  *     Pointer to the input macroarray
  *
  *	Remarks:
- *		
+ *
  */
-D3DXMACRO* Shader::FloatToMacroArray(float &f,const char* name,D3DXMACRO* macroarray,int offset){
-	std::stringstream ss;
-	static std::string str[5];
-	ss<<std::fixed<<f;
-    str[0+offset]=ss.str();
-	macroarray[0+offset].Name=name;
-	macroarray[0+offset].Definition=str[0+offset].c_str();
-	//macroarray[1+offset].Name=0;
-	//macroarray[1+offset].Definition=0;
-	return macroarray;
+D3DXMACRO* Shader::FloatToMacroArray(float &f, const char* name, D3DXMACRO* macroarray, int offset) {
+  std::stringstream ss;
+  static std::string str[5];
+  ss << std::fixed << f;
+  str[0 + offset] = ss.str();
+  macroarray[0 + offset].Name = name;
+  macroarray[0 + offset].Definition = str[0 + offset].c_str();
+  //macroarray[1+offset].Name=0;
+  //macroarray[1+offset].Definition=0;
+  return macroarray;
 }
 
 /*
  * SetMacroArray
  *
- *		Creates an empty define = #define name  
+ *		Creates an empty define = #define name
  *
  * Inputs:
- *		name:[in]name of the the definition	
+ *		name:[in]name of the the definition
  *		macroarray:[in][out]input macroarray to put the definition in
  *		offset:[in]the location of this definition inside the array
  * Returns:
  *     Pointer to the input macroarray
  *
  *	Remarks:
- *		
+ *
  */
-D3DXMACRO* Shader::SetMacroArray(const char* name,D3DXMACRO* macroarray,int offset){
-	macroarray[0+offset].Name=name;
-	macroarray[0+offset].Definition="";
-	//macroarray[1+offset].Name=0;
-	//macroarray[1+offset].Definition=0;
-	return macroarray;
+D3DXMACRO* Shader::SetMacroArray(const char* name, D3DXMACRO* macroarray, int offset) {
+  macroarray[0 + offset].Name = name;
+  macroarray[0 + offset].Definition = "";
+  //macroarray[1+offset].Name=0;
+  //macroarray[1+offset].Definition=0;
+  return macroarray;
 }
 
 
-HRESULT Shader::Reset(LPDIRECT3DDEVICE9 pDevice,bool firstpass)
+HRESULT Shader::Reset(LPDIRECT3DDEVICE9 pDevice, bool firstpass)
 {
-	std::list<Shader*>::iterator iter;
-	HRESULT hr=1;
-	for(iter=psList.begin();iter!=psList.end()&&SUCCEEDED(hr);iter++)
-		hr=(*iter)->ResetShader(pDevice,firstpass);
-	return hr;
+  std::list<Shader*>::iterator iter;
+  HRESULT hr = 1;
+  for (iter = psList.begin(); iter != psList.end() && SUCCEEDED(hr); iter++)
+    hr = (*iter)->ResetShader(pDevice, firstpass);
+  return hr;
 }
 
 /*
@@ -223,12 +223,12 @@ HRESULT Shader::Reset(LPDIRECT3DDEVICE9 pDevice,bool firstpass)
 
 D3DXMACRO* Shader::CreateMacroArray(unsigned int size)
 {
-	D3DXMACRO* retval=NEW D3DXMACRO[size+1];
-	for(unsigned int i=0;i<=size;i++)
-	{
-		retval[i].Name=0;
-		retval[i].Definition=0;
-	}
-	return retval;
+  D3DXMACRO* retval = NEW D3DXMACRO[size + 1];
+  for (unsigned int i = 0; i <= size; i++)
+  {
+    retval[i].Name = 0;
+    retval[i].Definition = 0;
+  }
+  return retval;
 }
 

@@ -30,28 +30,28 @@
 
 class Shader {
 public:
-	Shader(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs);
-	virtual ~Shader();
-	virtual HRESULT SetActive()=0;
-	static HRESULT Reset(LPDIRECT3DDEVICE9 pDevice,bool firstpass);
-	LPD3DXCONSTANTTABLE _pConstantTable;
+  Shader(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs);
+  virtual ~Shader();
+  virtual HRESULT SetActive() = 0;
+  static HRESULT Reset(LPDIRECT3DDEVICE9 pDevice, bool firstpass);
+  LPD3DXCONSTANTTABLE _pConstantTable;
 protected:
-	LPD3DXBUFFER pShader;
-	UINT GetSamplerIndex(D3DXHANDLE hConstant);
-	LPDIRECT3DDEVICE9 _pDevice;
-	
-	
+  LPD3DXBUFFER pShader;
+  UINT GetSamplerIndex(D3DXHANDLE hConstant);
+  LPDIRECT3DDEVICE9 _pDevice;
 
-	Quad* quad;
-	static std::list<Shader*> psList;
-	
-	virtual HRESULT ResetShader(LPDIRECT3DDEVICE9 pDevice,bool firstpass){return 1;}
-	D3DXMACRO* macro;
-	D3DXMACRO* VecToMacroArray(D3DXVECTOR2 &vector,const char* name,D3DXMACRO* macroarray,int offset=0);
-	D3DXMACRO* FloatToMacroArray(float &f,const char* name,D3DXMACRO* macroarray,int offset=0);
-	D3DXMACRO* SetMacroArray(const char* name,D3DXMACRO* macroarray,int offset=0);
-	D3DXMACRO* EndMacroArray();
-	D3DXMACRO* CreateMacroArray(unsigned int size);
+
+
+  Quad* quad;
+  static std::list<Shader*> psList;
+
+  virtual HRESULT ResetShader(LPDIRECT3DDEVICE9 pDevice, bool firstpass) { return 1; }
+  D3DXMACRO* macro;
+  D3DXMACRO* VecToMacroArray(D3DXVECTOR2 &vector, const char* name, D3DXMACRO* macroarray, int offset = 0);
+  D3DXMACRO* FloatToMacroArray(float &f, const char* name, D3DXMACRO* macroarray, int offset = 0);
+  D3DXMACRO* SetMacroArray(const char* name, D3DXMACRO* macroarray, int offset = 0);
+  D3DXMACRO* EndMacroArray();
+  D3DXMACRO* CreateMacroArray(unsigned int size);
 
 };
 

@@ -19,11 +19,11 @@
 
 class Vertexshader : public Shader {
 public:
-	Vertexshader(LPDIRECT3DDEVICE9 pDevice,LPCSTR pSrcFile, LPCSTR pFunctionName,LPCSTR pProfile,D3DXMACRO* defs=0);
-	~Vertexshader();
-	HRESULT SetActive();
+  Vertexshader(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0);
+  ~Vertexshader();
+  HRESULT SetActive();
 protected:
-	IDirect3DVertexShader9* _pVertexShader;
+  IDirect3DVertexShader9* _pVertexShader;
 };
 
 
