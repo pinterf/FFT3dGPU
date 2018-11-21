@@ -41,6 +41,10 @@ class FFT3dGPUallPlane : public GenericVideoFilter {
 public:
   FFT3dGPUallPlane(PClip _child, IScriptEnvironment* env);
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
+  // Auto register AVS+ mode: serialized
+  int __stdcall SetCacheHints(int cachehints, int frame_range) override {
+    return cachehints == CACHE_GET_MTMODE ? MT_SERIALIZED : 0; // no MT!
+  }
 
   void SetChromaAndLumaClip(PClip lumaplane, PClip chromaplane);
   PVideoFrame GetDstFrame();
@@ -66,6 +70,11 @@ public:
     FFT3dGPUallPlane* getdst, IScriptEnvironment* env);
   ~FFT3dGPU();
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
+  // Auto register AVS+ mode: serialized
+  int __stdcall SetCacheHints(int cachehints, int frame_range) override {
+    //return cachehints == CACHE_GET_MTMODE ? (bt == 0 ? MT_SERIALIZED : MT_MULTI_INSTANCE) : 0; // FFT3dFilter settings
+    return cachehints == CACHE_GET_MTMODE ? MT_SERIALIZED : 0; // no MT!
+  }
 protected:
   //To avoid unnecesary bltblit when processing both luma and chroma we ask GetDst to get the PVideoFrame we will use as the destination
   FFT3dGPUallPlane* GetDst;
