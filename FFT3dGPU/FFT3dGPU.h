@@ -67,7 +67,7 @@ public:
   FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _bt, float sharpen, int _plane, int _mode, int border, int precision,
     bool NVPerf, float _degrid, float scutoff, float svr, float smin, float smax, float kratio, int ow, int oh, int wintype, bool interlaced,
     float _sigma2, float _sigma3, float _sigma4, FFTCODE fftcode,
-    FFT3dGPUallPlane* getdst, IScriptEnvironment* env);
+    FFT3dGPUallPlane* getdst, int _xRatio, int _yRatio, IScriptEnvironment* env);
   ~FFT3dGPU();
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
   // Auto register AVS+ mode: serialized
@@ -79,31 +79,24 @@ protected:
   //To avoid unnecesary bltblit when processing both luma and chroma we ask GetDst to get the PVideoFrame we will use as the destination
   FFT3dGPUallPlane* GetDst;
   D3DDevice d3ddevice;	//contains informations about d3ddevice state(lost/reset device)
-  int plane; //1=luma 2=chroma
+  bool isLumaPlane; //1=luma 2=chroma
+  bool isYUY2;
+  bool isRGB;
+
   //caches the 2d fft on the GPU
-  GPUCache* cacheY;
-  GPUCache* cacheU;
-  GPUCache* cacheV;
+  GPUCache* caches[3];
 
   int lastn;//previous frame processed (used to calculate offset for the next frame to upload)
   int nuploaded;//current frame uploaded to the GPU memory (saved in UploadImgY/U/V)
-  TextureM* UploadImgY;	//contains the frame uploaded in the last call to getframe
-  TextureM* UploadImgY1;  //used if nuploaded was not the frame requested 
-  TextureM* UploadImgY2;  //the next needed frame is uploaded here (Y and Y2 are swaped)
-  TextureM* UploadImgU;
-  TextureM* UploadImgU1;
-  TextureM* UploadImgU2;
-  TextureM* UploadImgV;
-  TextureM* UploadImgV1;
-  TextureM* UploadImgV2;
-  //the result is downloaded here
-  TextureRT* DownloadImgY;
-  TextureRT* DownloadImgU;
-  TextureRT* DownloadImgV;
+  TextureM* UploadImg[3];	//contains the frame uploaded in the last call to getframe
 
-  KalmanFilter* kalmanY;
-  KalmanFilter* kalmanU;
-  KalmanFilter* kalmanV;
+  TextureM* UploadImg1[3];  //used if nuploaded was not the frame requested 
+  TextureM* UploadImg2[3];  //the next needed frame is uploaded here (Y and Y2 are swaped)
+
+  //the result is downloaded here
+  TextureRT* DownloadImg[3];
+
+  KalmanFilter* kalmans[3];
 
   //int _y,_u,_v;
   unsigned int height;//src height in bytes

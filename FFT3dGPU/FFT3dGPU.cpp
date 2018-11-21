@@ -163,18 +163,18 @@ double FFT3dGPU::MeasureFFT(FFT2d *_fft, TextureRT* In)
 FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _bt, float sharpen, int _plane, int _mode, int border, int precision,
   bool NVPerf, float _degrid, float scutoff, float svr, float smin, float smax, float kratio, int ow, int oh, int wintype, bool interlaced,
   float _sigma2, float _sigma3, float _sigma4, FFTCODE fftcode,
-  FFT3dGPUallPlane* getdst, IScriptEnvironment* env) :
+  FFT3dGPUallPlane* getdst, int _xRatio, int _yRatio, IScriptEnvironment* env) :
   GenericVideoFilter(cl1), 
-  plane(_plane <= 0 ? 1 : 2), // _plane==0 => luma or RGB => no SubSampling _plane==1 => chroma U and V
-  sigma(_sigma / 255), beta(_beta), bw(_bw), bh(_bh), height(vi.IsYUY2() ? vi.height : vi.height / plane), width(vi.width / plane), img(0),
-  FImg(0), FImg1(0), bt(_bt > 0 ? _bt : 1), bm(_bt), useHalf(precision == FLOAT16), sharpen(sharpen != 0), mode(_mode), cacheY(0), cacheU(0), cacheV(0), imgp(0), mutex(0),
+  isLumaPlane(_plane <= 0), // _plane==0 => luma or RGBfirtPlane, _plane==1 => chroma U and V or RGB2nd3rdplane
+  isYUY2(vi.IsYUY2()),
+  isRGB(vi.IsRGB()),
+  sigma(_sigma / 255), beta(_beta), bw(_bw), bh(_bh), height(vi.height / _yRatio), width(vi.width / _xRatio), img(0),
+  FImg(0), FImg1(0), bt(_bt > 0 ? _bt : 1), bm(_bt), useHalf(precision == FLOAT16), sharpen(sharpen != 0), mode(_mode), caches{ 0,0,0 }, imgp(0), mutex(0),
   pDevice(d3ddevice.Device()), gtype(D3Dwindow.GetGPUType()), d3ddevice(D3Dwindow), NVPERF(NVPerf), fft(0),
   gridsample(0), mintex(0), selectDC(0), calcgridcorrection(0), degrid(_degrid), usePattern(_sigma != _sigma2 || _sigma3 != _sigma4 || _sigma != _sigma3),
   FImgDegrid(0), FImgDegridp(), current(bm == 1 ? 0 : bm == 4 ? 2 : 1),
-  Pattern(0), sharp(0), wiennerfilter(0), kalmanY(0), kalmanU(0), kalmanV(0),
-  FImg2(0), UploadImgY(0), UploadImgY1(0), UploadImgY2(0), UploadImgU(0), UploadImgU1(0), UploadImgU2(0),
-  UploadImgV(0), UploadImgV1(0), UploadImgV2(0),
-  DownloadImgY(0), DownloadImgU(0), DownloadImgV(0),
+  Pattern(0), sharp(0), wiennerfilter(0), kalmans{ 0,0,0 },
+  FImg2(0), UploadImg{ 0,0,0 }, UploadImg1{ 0,0,0 }, UploadImg2{ 0,0,0 }, DownloadImg{ 0,0,0 },
   lastn(-1), nuploaded(-100), GetDst(getdst), convert2(0), convert(0),
   DI(NVPerf ? new Dxinput(HM, D3Dwindow.GetWindow()) : 0)
 {
@@ -269,23 +269,23 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   totw = nx * bw;
   toth = ny * bh;
   LOG("Creating textures");
-  if (plane == 1)
+  if (isLumaPlane)
   {
-    UploadImgY = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-    UploadImgY1 = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-    UploadImgY2 = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-    DownloadImgY = NEW TextureRT(pDevice, (width + 3) >> 2, height, gtype->FIXED4(), hr);
+    UploadImg[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
+    UploadImg1[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
+    UploadImg2[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
+    DownloadImg[0] = NEW TextureRT(pDevice, (width + 3) >> 2, height, gtype->FIXED4(), hr);
   }
   else
   {
-    UploadImgU = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImgU1 = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImgU2 = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    DownloadImgU = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
-    UploadImgV = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImgV1 = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImgV2 = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    DownloadImgV = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
+    UploadImg[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+    UploadImg1[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+    UploadImg2[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+    DownloadImg[1] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
+    UploadImg[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+    UploadImg1[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+    UploadImg2[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+    DownloadImg[2] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
   }
   LOG("Setup texture Img & Imgp");
   if (useHalf)
@@ -355,37 +355,37 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   //setup cache
   LOG("Setup GPUCACHE...");
   if (bm > 1) {
-    if (plane == 1) {
-      cacheY = NEW GPUCache(bt);
-      cacheY->StreamPoolPointer(pFreeFImgdPool);
+    if (isLumaPlane == 1) {
+      caches[0] = NEW GPUCache(bt);
+      caches[0]->StreamPoolPointer(pFreeFImgdPool);
     }
     else {
-      cacheU = NEW GPUCache(bt);
-      cacheU->StreamPoolPointer(pFreeFImgdPool);
-      cacheV = NEW GPUCache(bt);
-      cacheV->StreamPoolPointer(pFreeFImgdPool);
+      caches[1] = NEW GPUCache(bt);
+      caches[1]->StreamPoolPointer(pFreeFImgdPool);
+      caches[2] = NEW GPUCache(bt);
+      caches[2]->StreamPoolPointer(pFreeFImgdPool);
     }
   }
   if (bm == 0)
   {
     if (usePattern)
     {
-      if (plane == 1)
-        kalmanY = NEW KalmanFilter(pFreeFImgdPool, kratio, mode == 1, pDevice, Pattern);
+      if (isLumaPlane == 1)
+        kalmans[0] = NEW KalmanFilter(pFreeFImgdPool, kratio, mode == 1, pDevice, Pattern);
       else
       {
-        kalmanU = NEW KalmanFilter(pFreeFImgdPool, kratio, mode == 1, pDevice, Pattern);
-        kalmanV = NEW KalmanFilter(pFreeFImgdPool, kratio, mode == 1, pDevice, Pattern);
+        kalmans[1] = NEW KalmanFilter(pFreeFImgdPool, kratio, mode == 1, pDevice, Pattern);
+        kalmans[2] = NEW KalmanFilter(pFreeFImgdPool, kratio, mode == 1, pDevice, Pattern);
       }
     }
     else
     {
-      if (plane == 1)
-        kalmanY = NEW KalmanFilter(pFreeFImgdPool, sigma*sigma*bw*bh, kratio, mode == 1, pDevice);
+      if (isLumaPlane == 1)
+        kalmans[0] = NEW KalmanFilter(pFreeFImgdPool, sigma*sigma*bw*bh, kratio, mode == 1, pDevice);
       else
       {
-        kalmanU = NEW KalmanFilter(pFreeFImgdPool, sigma*sigma*bw*bh, kratio, mode == 1, pDevice);
-        kalmanV = NEW KalmanFilter(pFreeFImgdPool, sigma*sigma*bw*bh, kratio, mode == 1, pDevice);
+        kalmans[1] = NEW KalmanFilter(pFreeFImgdPool, sigma*sigma*bw*bh, kratio, mode == 1, pDevice);
+        kalmans[2] = NEW KalmanFilter(pFreeFImgdPool, sigma*sigma*bw*bh, kratio, mode == 1, pDevice);
       }
     }
   }
@@ -396,8 +396,11 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
       env->ThrowError("Failed Creating ImgStream");
 
   LOG("Setup ImgStream...");
-  if (mode == 1)
-    convert2 = NEW ImgStream2(bw, bh, ow, oh, plane == 1 ? UploadImgY : UploadImgU, imgp->first, plane == 1 ? DownloadImgY : DownloadImgU, plane != 1, wintype, interlaced, pDevice, gtype, useHalf, hr);
+  if (mode == 1) {
+    const bool useChromaDisplacementMacro = !isLumaPlane && !isRGB;
+    // later is HLSL: defines the CHROMANORM macro to 128.0/255.0 only for chroma, to shift it to the +/-0.5 range instead of 0..1.0
+    convert2 = NEW ImgStream2(bw, bh, ow, oh, isLumaPlane ? UploadImg[0] : UploadImg[1], imgp->first, isLumaPlane ? DownloadImg[0] : DownloadImg[1], useChromaDisplacementMacro, wintype, interlaced, pDevice, gtype, useHalf, hr);
+  }
   else
     convert = NEW ImgStream(bw, nx, bh, ny, mode, width, height, pDevice, gtype, useHalf, hr, border);
   LOG("done")
@@ -462,7 +465,7 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
 
   //Setup degrid
   if (degrid != 0) {
-    TextureRT* s = plane == 1 ? DownloadImgY : DownloadImgU;
+    TextureRT* s = isLumaPlane ? DownloadImg[0] : DownloadImg[1];
     s->SetAsRenderTarget();
     pDevice->Clear(0, 0, D3DCLEAR_TARGET, 0xFFFFFFFF, 0, 0);
     pDevice->BeginScene();
@@ -619,18 +622,14 @@ FFT3dGPU::~FFT3dGPU()
   delete FImgDegrid;
   delete Pattern;
 
-  delete UploadImgY;
-  delete UploadImgY1;
-  delete UploadImgY2;
-  delete UploadImgU;
-  delete UploadImgU1;
-  delete UploadImgU2;
-  delete UploadImgV;
-  delete UploadImgV1;
-  delete UploadImgV2;
-  delete DownloadImgY;
-  delete DownloadImgU;
-  delete DownloadImgV;
+  for (int i = 0; i < 3; i++) {
+    delete UploadImg[i];
+    delete UploadImg1[i];
+    delete UploadImg2[i];
+    delete DownloadImg[i];
+    delete caches[i];
+    delete kalmans[i];
+  }
 
   if (imgp)
     imgp->Release();
@@ -651,12 +650,6 @@ FFT3dGPU::~FFT3dGPU()
       }
   delete selectDC;
   delete calcgridcorrection;
-  delete cacheY;
-  delete cacheU;
-  delete cacheV;
-  delete kalmanY;
-  delete kalmanU;
-  delete kalmanV;
   delete convert;
   delete convert2;
   delete sharp;
@@ -722,30 +715,35 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
   else
   {
     dst = env->NewVideoFrame(vi);//else create a new empty frame
-    if (vi.IsYUY2())
+    if (isYUY2)
     {
       src = child->GetFrame(n, env);
       env->BitBlt(dst->GetWritePtr(), dst->GetPitch(), src->GetReadPtr(), src->GetPitch(), src->GetRowSize(), src->GetHeight());
     }
   }
 
-  //loop trough the two chroma planes(U and V) or through the luma plane(Y)
-  int planar = plane;
-  bool loop = true;
-  while (loop)
-  {
+  const int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
+  const int planes_r[4] = { PLANAR_G, PLANAR_B, PLANAR_R, PLANAR_A };
+  const int *planes = (vi.IsYUV() || vi.IsYUVA()) ? planes_y : planes_r;
 
+  //loop trough the two chroma planes(U and V) or through the luma plane(Y)
+  int planeNo = isLumaPlane ? 0 : 1;
+  // used for skipping through chromas planeNo=1 -> U (or B); planeNo
+  // for chroma or rgb planeNo will be 2 after 1
+  while (1)
+  {
+    const int currentPlane = planes[planeNo]; // Y or U or V or G or B or R
     //pDevice->Clear( 0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0 );
     D3Dwindow.BeginScene();
     //		BYTE* dstp;
     //		dstp=retwritepointer(dst,planar);//dst->GetWritePtr(planar);
         //Setup the gpucache to the right plane
-    GPUCache* cache = planar == 1 ? cacheY : planar == 2 ? cacheU : cacheV;
-    KalmanFilter* kalman = planar == 1 ? kalmanY : planar == 2 ? kalmanU : kalmanV;
-    TextureM* &upload1 = planar == 1 ? UploadImgY1 : planar == 2 ? UploadImgU1 : UploadImgV1;
+    GPUCache* cache = caches[planeNo];
+    KalmanFilter* kalman = kalmans[planeNo];
+    TextureM* &upload1 = UploadImg1[planeNo];
     //TextureM* &upload2=planar==1?UploadImgY2:planar==2?UploadImgU2:UploadImgV2;
-    TextureM* &upload = planar == 1 ? UploadImgY : planar == 2 ? UploadImgU : UploadImgV;
-    TextureRT* download = planar == 1 ? DownloadImgY : planar == 2 ? DownloadImgU : DownloadImgV;
+    TextureM* &upload = UploadImg[planeNo];
+    TextureRT* download = DownloadImg[planeNo];
     //42
     //Reset the render and sampler state just in case if any filters or programs has changed them
     pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
@@ -773,10 +771,11 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
               if (nuploaded != n - current + i)
               {
                 src = child->GetFrame(n - current + i, env);
-                if (vi.IsYV12())
-                  UploadToTexture(upload, src->GetReadPtr(planar), src->GetPitch(planar));
+                if (!isYUY2) {
+                  UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+                }
                 else
-                  UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planar == PLANAR_Y ? 0 : planar == PLANAR_U ? 1 : 3), src->GetPitch(), planar == PLANAR_Y ? 2 : 4);
+                  UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
                 convert->ImgToStream(upload, img);
               }
               else
@@ -813,10 +812,10 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
               if (nuploaded != n - current + i)
               {
                 src = child->GetFrame(n - current + i, env);
-                if (vi.IsYV12())
-                  UploadToTexture(upload, src->GetReadPtr(planar), src->GetPitch(planar));
+                if (!isYUY2)
+                  UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
                 else
-                  UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planar == PLANAR_Y ? 0 : planar == PLANAR_U ? 1 : 3), src->GetPitch(), planar == PLANAR_Y ? 2 : 4);
+                  UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
                 convert2->ImgToTexture(upload, imgp);
               }
               else
@@ -864,10 +863,10 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
         if (nuploaded != n)
         {
           src = child->GetFrame(n, env);
-          if (vi.IsYV12())
-            UploadToTexture(upload, src->GetReadPtr(planar), src->GetPitch(planar));
+          if (!isYUY2)
+            UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
           else
-            UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planar == PLANAR_Y ? 0 : planar == PLANAR_U ? 1 : 3), src->GetPitch(), planar == PLANAR_Y ? 2 : 4);
+            UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
           convert->ImgToStream(upload, img);
         }
         else
@@ -919,10 +918,10 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
         {
           PROFILE_BLOCK
             src = child->GetFrame(n, env);
-          if (vi.IsYV12())
-            UploadToTexture(upload, src->GetReadPtr(planar), src->GetPitch(planar));
+          if (!isYUY2)
+            UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
           else
-            UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planar == PLANAR_Y ? 0 : planar == PLANAR_U ? 1 : 3), src->GetPitch(), planar == PLANAR_Y ? 2 : 4);
+            UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
           //upload->SaveTex("d:\\src.dds");
           convert2->ImgToTexture(upload, imgp);
         }
@@ -984,12 +983,12 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
     //if lost and recovered then all textureRT are erased so it is nececery to start over.
     if (d3ddevice.DeviceLost())
     {
-      if (kalmanY)
-        kalmanY->Restore();
-      else if (kalmanU)
+      if (kalmans[0])
+        kalmans[0]->Restore();
+      else if (kalmans[1])
       {
-        kalmanU->Restore();
-        kalmanV->Restore();
+        kalmans[1]->Restore();
+        kalmans[2]->Restore();
       }
       if (GetDst)
       {
@@ -1000,24 +999,24 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
 
     }
     //goto Restart;
-    if (planar == 1 || planar == 4)//if calc luma or chroma V end loop
-      loop = false;
-    else //else set planar to chroma V
-      planar <<= 1;
-
+    if (isLumaPlane) // planeNo == 0
+      break;
+    planeNo++;
+    if (planeNo > 2) // exit after 2nd pass (U and V is done - RGB last two planes are done)
+      break;
   }
 
   D3Dwindow.StartGPU();
 
   src = child->GetFrame(n, env);
-  if (!GetDst&&vi.IsYV12())//if process all plane no need to bitblt
+  if (!GetDst && !isYUY2) // if process all plane no need to bitblt
   {
     LOG("bitblt...")
-      if (plane == 1) {//If calc Luma copy chromaplane
+      if (isLumaPlane && !vi.IsY()) { // If calc Luma copy chromaplane
         env->BitBlt(dst->GetWritePtr(PLANAR_U), dst->GetPitch(PLANAR_U), src->GetReadPtr(PLANAR_U), src->GetPitch(PLANAR_U), src->GetRowSize(PLANAR_U), src->GetHeight(PLANAR_U));
         env->BitBlt(dst->GetWritePtr(PLANAR_V), dst->GetPitch(PLANAR_V), src->GetReadPtr(PLANAR_V), src->GetPitch(PLANAR_V), src->GetRowSize(PLANAR_V), src->GetHeight(PLANAR_V));
       }
-      else	//else calc chroma copy luma
+      else // else calc chroma copy luma
         env->BitBlt(dst->GetWritePtr(PLANAR_Y), dst->GetPitch(PLANAR_Y), src->GetReadPtr(PLANAR_Y), src->GetPitch(PLANAR_Y), src->GetRowSize(PLANAR_Y), src->GetHeight(PLANAR_Y));
     LOG("done")
   }
@@ -1034,58 +1033,66 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
     delta = 1;
   nuploaded = lastn + delta;
   src = child->GetFrame(nuploaded, env);
-  if (plane == 1)
+  if (isLumaPlane)
   {
     PROFILE_BLOCK
       //UploadToTexture(UploadImgY2,src->GetReadPtr(PLANAR_Y),src->GetPitch(PLANAR_Y));
-      if (vi.IsYV12())
-        UploadToTexture(UploadImgY2, src->GetReadPtr(PLANAR_Y), src->GetPitch(PLANAR_Y));
+      if (!isYUY2) {
+        const int currentPlane = planes[0]; // Y or G
+        UploadToTexture(UploadImg2[0], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+      }
       else
-        UploadInterleavedToFixedTexture(UploadImgY2, src->GetReadPtr(), src->GetPitch(), 2);
-    std::swap(UploadImgY2, UploadImgY1);
+        UploadInterleavedToFixedTexture(UploadImg2[0], src->GetReadPtr(), src->GetPitch(), 2);
+    std::swap(UploadImg2[0], UploadImg1[0]);
   }
   else
   {
     PROFILE_BLOCK
       //UploadToTexture(UploadImgU2,src->GetReadPtr(PLANAR_U),src->GetPitch(PLANAR_U));
-      if (vi.IsYV12())
+      if (!isYUY2)
       {
-        UploadToTexture(UploadImgU2, src->GetReadPtr(PLANAR_U), src->GetPitch(PLANAR_U));
-        UploadToTexture(UploadImgV2, src->GetReadPtr(PLANAR_V), src->GetPitch(PLANAR_V));
+        int currentPlane = planes[1]; // 1: U or B  2: V or R
+        UploadToTexture(UploadImg2[1], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+        currentPlane = planes[2];
+        UploadToTexture(UploadImg2[2], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
       }
       else
       {
-        UploadInterleavedToFixedTexture(UploadImgU2, src->GetReadPtr() + 1, src->GetPitch(), 4);
-        UploadInterleavedToFixedTexture(UploadImgV2, src->GetReadPtr() + 3, src->GetPitch(), 4);
+        UploadInterleavedToFixedTexture(UploadImg2[1], src->GetReadPtr() + 1, src->GetPitch(), 4);
+        UploadInterleavedToFixedTexture(UploadImg2[2], src->GetReadPtr() + 3, src->GetPitch(), 4);
       }
-    std::swap(UploadImgU2, UploadImgU1);
+    std::swap(UploadImg2[1], UploadImg1[1]);
     //UploadToTexture(UploadImgV2,src->GetReadPtr(PLANAR_V),src->GetPitch(PLANAR_V));
-    std::swap(UploadImgV2, UploadImgV1);
+    std::swap(UploadImg2[2], UploadImg1[2]);
   }
 
   D3Dwindow.SleepWhileGPUwork();
 
-  if (plane == 1)
+  if (isLumaPlane)
   {
     PROFILE_BLOCK
       //convert2->TextureToSrc(imgp,dst->GetWritePtr(PLANAR_Y),dst->GetPitch(PLANAR_Y));
-      if (vi.IsYV12())
-        DownloadFromTexture(DownloadImgY, dst->GetWritePtr(PLANAR_Y), dst->GetPitch(PLANAR_Y), true);
+      if (!isYUY2) {
+        const int currentPlane = planes[0]; // Y or G
+        DownloadFromTexture(DownloadImg[0], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane), true);
+      }
       else
-        DownloadFromFixedTextureInterleaved(DownloadImgY, dst->GetWritePtr(), dst->GetPitch(), true, 2);
+        DownloadFromFixedTextureInterleaved(DownloadImg[0], dst->GetWritePtr(), dst->GetPitch(), true, 2);
   }
   else
   {
     PROFILE_BLOCK
-      if (vi.IsYV12())
+      if (!isYUY2)
       {
-        DownloadFromTexture(DownloadImgU, dst->GetWritePtr(PLANAR_U), dst->GetPitch(PLANAR_U), true);
-        DownloadFromTexture(DownloadImgV, dst->GetWritePtr(PLANAR_V), dst->GetPitch(PLANAR_V), true);
+        int currentPlane = planes[1]; // 1: U or B  2: V or R
+        DownloadFromTexture(DownloadImg[1], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane), true);
+        currentPlane = planes[2];
+        DownloadFromTexture(DownloadImg[2], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane), true);
       }
       else
       {
-        DownloadFromFixedTextureInterleaved(DownloadImgU, dst->GetWritePtr() + 1, dst->GetPitch(), true, 4);
-        DownloadFromFixedTextureInterleaved(DownloadImgV, dst->GetWritePtr() + 3, dst->GetPitch(), true, 4);
+        DownloadFromFixedTextureInterleaved(DownloadImg[1], dst->GetWritePtr() + 1, dst->GetPitch(), true, 4);
+        DownloadFromFixedTextureInterleaved(DownloadImg[2], dst->GetWritePtr() + 3, dst->GetPitch(), true, 4);
       }
   }
   //if nvperf present window so nvperfhud can do its magic
@@ -1166,7 +1173,7 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
   const VideoInfo vi = args[0].AsClip()->GetVideoInfo();
   if (vi.IsRGB()) {
     if(!vi.IsPlanar())
-      env->ThrowError("FFT3dGPU: only planar RGB is supported");
+      env->ThrowError("FFT3dGPU: no packed RGB, only planar RGB is supported");
     plane = 4;
     // for RGB: silently set to handle all planes, no luma or chroma
     // at the moment the first and second-third RGB planes will be handled separately (like Y and UV)
@@ -1192,6 +1199,10 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
   LOG("CREATE_fft3dGPU" << std::endl)
     bool d = args[8].AsInt(1) == 1;//mode=1?
   float degrid = (float)args[12].AsFloat(d ? 1.0 : 0.0);
+
+  const int xRatioUV = (vi.IsY() || vi.IsRGB()) ? 1 : (1 << vi.GetPlaneWidthSubsampling(PLANAR_U));
+  const int yRatioUV = (vi.IsY() || vi.IsRGB()) ? 1 : (1 << vi.GetPlaneHeightSubsampling(PLANAR_U));
+
   retval = NEW FFT3dGPU(args[0].AsClip()//Input Clip
     , sigma,//sigma
     args[2].AsFloat(1),//beta
@@ -1220,6 +1231,8 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
     args[24].AsFloat(sigma),//sigma4
     fftcode,//fftcode
     getdst,//getdst valid only for all-planes operation
+    plane == 0 ? 1 : xRatioUV,
+    plane == 0 ? 1 : yRatioUV,
     env//env
   );
   if (allplane)
@@ -1254,6 +1267,8 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
       args[24].AsFloat(sigma),//sigma4
       fftcode,//fftcode
       getdst, // valid only for all-planes operation
+      xRatioUV,
+      yRatioUV,
       env//env
     );
     getdst->SetChromaAndLumaClip(retval, chroma); // merge luma and chroma results
@@ -1278,7 +1293,7 @@ extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScri
     env->AddFunction("fft3dGPU", "c[sigma]f[beta]f[bw]i[bh]i[bt]i[sharpen]f[plane]i[mode]i[bordersize]i[precision]i[NVPerf]b[degrid]f[scutoff]f[svr]f[smin]f[smax]f[kratio]f[ow]i[oh]i[wintype]i[interlaced]b[sigma2]f[sigma3]f[sigma4]f[oldfft]b", Create_fft3dGPU, 0);
   LOG("AvisynthPluginInit2 Addfunction done");
 
-  return "fft3dGPU ver 0.8.3";
+  return "fft3dGPU ver 0.8.4";
 }
 
 
