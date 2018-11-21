@@ -192,8 +192,6 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
     D3Dwindow.Show();
     //pDevice->GetBackBuffer(0,0, D3DBACKBUFFER_TYPE_MONO,&backbuffer	);
   }
-  if (!vi.IsPlanar() && !vi.IsYUY2())
-    env->ThrowError("Only YV12 or YUY2 colorspace is supported. Use converttoyv12() or converttoyuy2() before fft3dgpu.");
   /*
   if(!(mutex=CreateMutex(NULL,FALSE,"fft3dgpu_mutex")))
     env->ThrowError("Couldn't create mutex");
@@ -1165,19 +1163,30 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
     plane = 1;
   // now plane: 0 (luma), 1 (chroma), 4 (all)
 
-  const bool grey = (args[0].AsClip()->GetVideoInfo().IsY());
-  if (grey) {
+  const VideoInfo vi = args[0].AsClip()->GetVideoInfo();
+  if (vi.IsRGB()) {
+    if(!vi.IsPlanar())
+      env->ThrowError("FFT3dGPU: only planar RGB is supported");
+    plane = 4;
+    // for RGB: silently set to handle all planes, no luma or chroma
+    // at the moment the first and second-third RGB planes will be handled separately (like Y and UV)
+  }
+    
+  if (vi.IsY()) {
     if (plane == 1)
       env->ThrowError("FFT3dGPU: cannot set chroma processing for a greyscale clip");
     if (plane == 4)
       plane = 0; // all planes means luma only
   }
 
+  if (vi.BitsPerComponent() != 8)
+    env->ThrowError("FFT3dGPU: only 8 bit clips are supported");
+
   PClip retval;
   FFT3dGPUallPlane* getdst = 0;
   if (allplane)
   {
-    getdst = NEW FFT3dGPUallPlane(args[0].AsClip(), env);
+    getdst = NEW FFT3dGPUallPlane(args[0].AsClip(), env); // tricky helper to avoid a BitBlt
     plane = 0; // first we take luma
   }
   LOG("CREATE_fft3dGPU" << std::endl)
