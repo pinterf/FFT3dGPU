@@ -16,11 +16,11 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
         <p>
             <b>author:</b> Tonny Petersen aka tsp
             <br>
-            <b>version:</b> 0.8.3<br>
+            <b>version:</b> 0.8.4<br>
             <b>download (until 0.8.2):</b> <a href="http://www.avisynth.org/tsp/">http://www.avisynth.org/tsp/</a><br>
-            <b>download (0.8.3-):</b> <a href="https://github.com/pinterf/FFT3dGPU">https://github.com/pinterf/FFT3dGPU/</a><br>
+            <b>download (from 0.8.3):</b> <a href="https://github.com/pinterf/FFT3dGPU">https://github.com/pinterf/FFT3dGPU/</a><br>
             <b>category:</b> Misc Plugins<br>
-            <b>requirements:</b> YV12 or YUY2 Colorspace, Directx 9 graphics card<br>
+            <b>requirements:</b> Y8, YV12, YV16, YV411, YV24 or YUY2 Colorspace (8 bits), 8 bit Planar RGB, Directx 9 graphics card<br>
             <b>license:</b> GPL
         </p>
         <h2>Introduction</h2>
@@ -34,6 +34,8 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
             In this version the next frame is processed while waiting for the GPU to end
             it's work. Meaning the filters before fft3dGPU are working concurrently with
             it.
+
+            The filter is not MT-friendly, from v0.8.4 automatically registers itself as MT_SERIALIZED for Avisynth+
         </p>
         <h3>
             Install:
@@ -67,7 +69,7 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
         <h3>
             Function parameters:
         </h3>
-        <p><var>clip</var>: the clip to filter. The clip must be YV12 or YUY2.</p>
+        <p><var>clip</var>: the clip to filter. Clip must be Y8, YV12, YV16, YV411, YV24 or YUY2 Colorspace, and 8 bit Planar RGB (Avisynth+).</p>
         <p>
             <var>sigma</var> and <var>beta</var> has the same meaning as in fft3dfilter.
             Default=2.
@@ -94,6 +96,9 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
         <p>
             <var>plane</var>: 0 filters luma, 1,2 and 3 filters Chroma (both U and V). 4
             filters both luma and chroma. Default 0.
+            For greyscale clip 4 means luma (the only plane), 1,2 and 3 gives error message.
+            For RGB clips (planar RGB only!) operation is always 4=all planes, regardless 
+            of this parameter.
         </p>
         <p>
             <var>mode</var>: 0 only overlaps 1:1. This is faster but produces artifacts with
@@ -111,7 +116,7 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
             <var>precision</var>: 0: to use 16 bit floats(half precision),<br>
             1: to use 32 bit float(single precision) for the fft and 16 bit float for the
             wienner/kalman and sharpening.<br>
-            2: allways use 32 bit floats.<br>
+            2: always use 32 bit floats.<br>
             Using 16 bit float increases the performance but reduces precision. With a
             Geforce 7800GT precision=0 is ~1.5 times faster than than mode 2. Default=0.
         </p>
@@ -334,6 +339,14 @@ where x means any digit.
                 Source compatible with VS2017 + DX9 SDK June 2010
                 Avisynth 2.6 interface
                 x86 and x64 build
+            </LI>
+            <LI>
+                0.8.4 (20181121) - pinterf
+                - New color spaces besides YV12 and YUY2:
+                  Y8, YV16, YV411, YV24 (all 8 bits), 8 bit Planar RGB (Avisynth+)
+                  You can always convert losslessly between classic RGB24/32 and planar RGB formats.
+                - FFT3dGPU filter registers itself as MT_SERIALIZED automatically for Avisynth+:
+                  no need for SetFilterMTMode.
             </LI>
         </ul>
         <p>Sourcecode released under GPL see copying.txt</p>

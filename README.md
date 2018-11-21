@@ -5,6 +5,11 @@ An attempt to compile FFT3dGPU under Visual Studio 2017 with current Avisynth+ h
 
 Changelog (pinterf)
 
+**v0.8.4 (20181121)**
+- New color spaces besides YV12 and YUY2:
+  Y8, YV16, YV411, YV24 (all 8 bits), 8 bit Planar RGB (Avisynth+)
+- FFT3dGPU filter registers itself as MT_SERIALIZED automatically for Avisynth+: no need for SetFilterMTMode.
+
 **v0.8.3 (20181118)**
 - project hosted on https://github.com/pinterf/FFT3dGPU
 - source and project files updated to build under Visual Studio 2017 (15.9) using DX SDK June 2010
