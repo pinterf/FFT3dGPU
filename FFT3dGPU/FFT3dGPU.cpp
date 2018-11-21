@@ -1164,6 +1164,15 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
   if (plane == 2 || plane == 3)
     plane = 1;
   // now plane: 0 (luma), 1 (chroma), 4 (all)
+
+  const bool grey = (args[0].AsClip()->GetVideoInfo().IsY());
+  if (grey) {
+    if (plane == 1)
+      env->ThrowError("FFT3dGPU: cannot set chroma processing for a greyscale clip");
+    if (plane == 4)
+      plane = 0; // all planes means luma only
+  }
+
   PClip retval;
   FFT3dGPUallPlane* getdst = 0;
   if (allplane)
