@@ -164,7 +164,9 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   bool NVPerf, float _degrid, float scutoff, float svr, float smin, float smax, float kratio, int ow, int oh, int wintype, bool interlaced,
   float _sigma2, float _sigma3, float _sigma4, FFTCODE fftcode,
   FFT3dGPUallPlane* getdst, IScriptEnvironment* env) :
-  GenericVideoFilter(cl1), plane(_plane <= 0 ? 1 : 2), sigma(_sigma / 255), beta(_beta), bw(_bw), bh(_bh), height(vi.IsYUY2() ? vi.height : vi.height / plane), width(vi.width / plane), img(0),
+  GenericVideoFilter(cl1), 
+  plane(_plane <= 0 ? 1 : 2), // _plane==0 => luma or RGB => no SubSampling _plane==1 => chroma U and V
+  sigma(_sigma / 255), beta(_beta), bw(_bw), bh(_bh), height(vi.IsYUY2() ? vi.height : vi.height / plane), width(vi.width / plane), img(0),
   FImg(0), FImg1(0), bt(_bt > 0 ? _bt : 1), bm(_bt), useHalf(precision == FLOAT16), sharpen(sharpen != 0), mode(_mode), cacheY(0), cacheU(0), cacheV(0), imgp(0), mutex(0),
   pDevice(d3ddevice.Device()), gtype(D3Dwindow.GetGPUType()), d3ddevice(D3Dwindow), NVPERF(NVPerf), fft(0),
   gridsample(0), mintex(0), selectDC(0), calcgridcorrection(0), degrid(_degrid), usePattern(_sigma != _sigma2 || _sigma3 != _sigma4 || _sigma != _sigma3),
@@ -1109,15 +1111,23 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
     return(dst);
 }
 
+// FFT3dGPUallPlane: to save one BitBlt by using the very same frame in multiple
+// FFT3dGPU filters (one FFT3dGPU filter can handle either luma or two chromas)
 FFT3dGPUallPlane::FFT3dGPUallPlane(PClip _child, IScriptEnvironment* env) :
   GenericVideoFilter(_child)
 {}
 
 PVideoFrame FFT3dGPUallPlane::GetFrame(int n, IScriptEnvironment* env)
 {
+  // return value is a common clip
   dst_frame = env->NewVideoFrame(vi);
+  // lumaplane->GetFrame will work into this just created dst_frame by getting it with GetDstFrame
+  // and fill the Luma planes, then returning this dst_frame by ReturnDstFrame
   dst_frame = _lumaplane->GetFrame(n, env);
+  // chromaplane->GetFrame will futher work into this dst_frame by getting it with GetDstFrame
+  // and fill the chroma planes, then returning this dst_frame by ReturnDstFrame
   dst_frame = _chromaplane->GetFrame(n, env);
+  // now both luma and chroma is filled
   return dst_frame;
 }
 
@@ -1133,9 +1143,12 @@ PVideoFrame FFT3dGPUallPlane::GetDstFrame()
 {
   PVideoFrame tmp = dst_frame;
   dst_frame = 0;
-  return tmp;//This ensures that the dst_frame refcount is 1 = it's writable;
+  return tmp;
+  // This assignment sequence ensures that the dst_frame refcount is 1 = it's writable
+  // So we can write in it in the next FFT3dGPU GetFrame.
 }
 
+// when all-planes mode, after filtering luma or chromas, the result is returned with this method
 void FFT3dGPUallPlane::ReturnDstFrame(PVideoFrame dst)
 {
   dst_frame = dst;
@@ -1144,18 +1157,19 @@ void FFT3dGPUallPlane::ReturnDstFrame(PVideoFrame dst)
 
 //creates the FFT3dGPU class and returns it
 AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironment* env) {
-  int plane = args[7].AsInt(0);
+  int plane = args[7].AsInt(0); //  0 filters luma, 1,2 and 3 filters Chroma (both U and V). 4 filters both luma and chroma. Default 0. 
   FFTCODE fftcode = args[25].Defined() ? args[25].AsBool() ? RADIX2LUT : STOCKHAM : MEASURE;
   float sigma = args[1].AsFloat(2);
   bool allplane = (plane == 4);
   if (plane == 2 || plane == 3)
     plane = 1;
+  // now plane: 0 (luma), 1 (chroma), 4 (all)
   PClip retval;
   FFT3dGPUallPlane* getdst = 0;
   if (allplane)
   {
     getdst = NEW FFT3dGPUallPlane(args[0].AsClip(), env);
-    plane = 0;
+    plane = 0; // first we take luma
   }
   LOG("CREATE_fft3dGPU" << std::endl)
     bool d = args[8].AsInt(1) == 1;//mode=1?
@@ -1167,7 +1181,7 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
     args[4].AsInt(32),//bh
     args[5].AsInt(3),//bt
     args[6].AsFloat(0.0),//sharpen
-    plane,//plane
+    plane,//plane  here:0:luma (incl. all plane) 1:chromaUandV
     args[8].AsInt(1),//mode
     args[9].AsInt(1),//border
     args[10].AsInt(FLOAT16),//precision
@@ -1187,13 +1201,13 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
     args[23].AsFloat(sigma),//sigma3
     args[24].AsFloat(sigma),//sigma4
     fftcode,//fftcode
-    getdst,//getdst
+    getdst,//getdst valid only for all-planes operation
     env//env
   );
   if (allplane)
   {
     //AVSValue r1=env->Invoke("InternalCache",retval.AsClip());
-    plane = 1;
+    plane = 1; // luma was already done, now comes chromaUandV part
     PClip chroma = NEW FFT3dGPU(args[0].AsClip()//Input Clip
       , sigma,//sigma
       args[2].AsFloat(1),//beta
@@ -1221,10 +1235,10 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
       args[23].AsFloat(sigma),//sigma3
       args[24].AsFloat(sigma),//sigma4
       fftcode,//fftcode
-      getdst,
+      getdst, // valid only for all-planes operation
       env//env
     );
-    getdst->SetChromaAndLumaClip(retval, chroma);
+    getdst->SetChromaAndLumaClip(retval, chroma); // merge luma and chroma results
     retval = getdst;
   }
   LOG("CREATE_fft3dGPU done" << std::endl)

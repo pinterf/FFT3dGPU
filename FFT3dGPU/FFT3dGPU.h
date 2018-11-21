@@ -70,7 +70,7 @@ protected:
   //To avoid unnecesary bltblit when processing both luma and chroma we ask GetDst to get the PVideoFrame we will use as the destination
   FFT3dGPUallPlane* GetDst;
   D3DDevice d3ddevice;	//contains informations about d3ddevice state(lost/reset device)
-  int plane;				//1=luma 2=chroma
+  int plane; //1=luma 2=chroma
   //caches the 2d fft on the GPU
   GPUCache* cacheY;
   GPUCache* cacheU;
