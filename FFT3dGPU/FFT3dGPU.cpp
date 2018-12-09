@@ -224,7 +224,7 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   if (bh > 512)
     bh = 512;
   if (bm < -1 || bm>4)
-    env->ThrowError("Valud modes for bt are -1,0,1,2,3,4");
+    env->ThrowError("Valid modes for bt are -1,0,1,2,3,4");
   if (mode < 0 || mode>2)
     mode = 0;
   ow *= (float)bw / _bw;
