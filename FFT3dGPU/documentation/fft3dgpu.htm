@@ -16,7 +16,7 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
         <p>
             <b>author:</b> Tonny Petersen aka tsp
             <br>
-            <b>version:</b> 0.8.4<br>
+            <b>version:</b> 0.8.5<br>
             <b>download (until 0.8.2):</b> <a href="http://www.avisynth.org/tsp/">http://www.avisynth.org/tsp/</a><br>
             <b>download (from 0.8.3):</b> <a href="https://github.com/pinterf/FFT3dGPU">https://github.com/pinterf/FFT3dGPU/</a><br>
             <b>category:</b> Misc Plugins<br>
@@ -347,6 +347,11 @@ where x means any digit.
                   You can always convert losslessly between classic RGB24/32 and planar RGB formats.
                 - FFT3dGPU filter registers itself as MT_SERIALIZED automatically for Avisynth+:
                   no need for SetFilterMTMode.
+            </LI>
+            <LI>
+                0.8.5 (20201101) - pinterf
+                - Avisynth+ 3.6 additional support: preserve frame properties
+                - Fix Kalman mode warning in fft3dgpu.hlsl (Nuihc88) 
             </LI>
         </ul>
         <p>Sourcecode released under GPL see copying.txt</p>
