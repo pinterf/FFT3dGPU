@@ -1,3 +1,0 @@
-Comment:
-The HLSL (shader program) file is edited from the original to adhere to pixel shader 3.0 syntax rules. 
-Please make sure to place the correct file in the same directory as the 64bit plugin. Compiled by Joshy D.
