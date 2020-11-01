@@ -76,6 +76,8 @@ public:
     return cachehints == CACHE_GET_MTMODE ? MT_SERIALIZED : 0; // no MT!
   }
 protected:
+  bool has_at_least_v8; // frame property support
+
   //To avoid unnecesary bltblit when processing both luma and chroma we ask GetDst to get the PVideoFrame we will use as the destination
   FFT3dGPUallPlane* GetDst;
   D3DDevice d3ddevice;	//contains informations about d3ddevice state(lost/reset device)

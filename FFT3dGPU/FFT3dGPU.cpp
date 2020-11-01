@@ -178,6 +178,11 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   lastn(-1), nuploaded(-100), GetDst(getdst), convert2(0), convert(0),
   DI(NVPerf ? new Dxinput(HM, D3Dwindow.GetWindow()) : 0)
 {
+  // Check frame property support
+  has_at_least_v8 = true;
+  try { env->CheckVersion(8); }
+  catch (const AvisynthError&) { has_at_least_v8 = false; }
+
   smin /= 255;
   smax /= 255;
 
@@ -710,6 +715,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
   //get destination frame
   PVideoFrame dst;
   PVideoFrame src;
+
   if (GetDst)
     dst = GetDst->GetDstFrame();//from FFT3dGPUallPlane so we don't need to bltbit the luma/chroma
   else
@@ -1009,6 +1015,11 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
   D3Dwindow.StartGPU();
 
   src = child->GetFrame(n, env);
+
+  if (has_at_least_v8) { // frame property from the nth position
+    env->copyFrameProps(src, dst);
+  }
+
   if (!GetDst && !isYUY2) // if process all plane no need to bitblt
   {
     LOG("bitblt...")
