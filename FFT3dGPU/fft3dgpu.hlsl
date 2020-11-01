@@ -754,7 +754,7 @@ struct PS_RETVAL
 #define COVARNOISE tex2D(CovarNoise,In.texCoord).x
 #endif
 //modified from Fizick fft3dfilter
-PS_RETVAL Kalman(PS_INPUT In):COLOR
+PS_RETVAL Kalman(PS_INPUT In)
 {
 	PS_RETVAL retval;
 	PS_RETVAL r_1;
