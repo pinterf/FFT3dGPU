@@ -27,8 +27,8 @@ LANGUAGE LANG_DANISH, SUBLANG_DEFAULT
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,8,4,0
- PRODUCTVERSION 0,8,4,0
+ FILEVERSION 0,8,5,0
+ PRODUCTVERSION 0,8,5,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -44,12 +44,12 @@ BEGIN
         BLOCK "040604b0"
         BEGIN
             VALUE "FileDescription", "FFT3dGPU"
-            VALUE "FileVersion", "0, 8, 4, 0"
+            VALUE "FileVersion", "0, 8, 5, 0"
             VALUE "InternalName", "FFT3dGPU"
-            VALUE "LegalCopyright", "Copyright (C) 2005"
+            VALUE "LegalCopyright", "Copyright (C) 2005, 2020"
             VALUE "OriginalFilename", "FFT3dGPU.dll"
             VALUE "ProductName", " FFT3dGPU"
-            VALUE "ProductVersion", "0, 8, 4, 0"
+            VALUE "ProductVersion", "0, 8, 5, 0"
         END
     END
     BLOCK "VarFileInfo"
