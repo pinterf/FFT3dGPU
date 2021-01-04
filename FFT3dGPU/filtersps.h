@@ -103,7 +103,7 @@ public:
 class psImg2toFloat4m0 : public psImg2toFloat4 {
 public:
   //psImg2toFloat4m0(LPDIRECT3DDEVICE9 pDevice,Texture* _Rendertarget,D3DXVECTOR2 &offset,TextureM* src);
-  psImg2toFloat4m0(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Factormap, D3DXVECTOR2 &offset, Texture* src);
+  psImg2toFloat4m0(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Factormap, D3DXVECTOR2 &offset, Texture* src, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* FactorLUT, TextureRT* dst);
 protected:
 
@@ -114,7 +114,7 @@ protected:
 
 class psImg2toFloat4m2 : public psImg2toFloat4 {
 public:
-  psImg2toFloat4m2(LPDIRECT3DDEVICE9 pDevice, int bw, int bh, int repx, int repy, int border, Texture* src);
+  psImg2toFloat4m2(LPDIRECT3DDEVICE9 pDevice, int bw, int bh, int repx, int repy, int border, Texture* src, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* FactorLUT, TextureRT* dst);
 protected:
   D3DXHANDLE sSrc;
@@ -161,7 +161,7 @@ protected:
 //*******************************************************************************************
 class psImg2toFloat4_2 : public Pixelshader {
 public:
-  psImg2toFloat4_2(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src);
+  psImg2toFloat4_2(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* FactorLUT, TextureRT* dst);
 protected:
 
@@ -187,7 +187,7 @@ protected:
 //*****************************************************************************************************
 class psImg2toImg4 : public Pixelshader {
 public:
-  psImg2toImg4(LPDIRECT3DDEVICE9 pDevice, Texture* Src, Texture* Dst);
+  psImg2toImg4(LPDIRECT3DDEVICE9 pDevice, Texture* Src, Texture* Dst, int bits_per_pixel);
   HRESULT Apply(Texture* src, TextureRT* dst);
 protected:
   D3DXHANDLE sSrc;
@@ -195,7 +195,7 @@ protected:
 //******************************************************************************************************
 //mode 1
 
-//convert 8 bit src to float
+//convert 8-32 bit src to float
 class psImg2ToFloat4 : public Pixelshader {
 public:
   psImg2ToFloat4(LPDIRECT3DDEVICE9 pDevice, LPCSTR pSrcFile, LPCSTR pFunctionName, LPCSTR pProfile, D3DXMACRO* defs = 0) :
@@ -207,7 +207,7 @@ public:
 //single pass non interlaced ow==bw/2 and oh==bh/2
 class psImg2ToFloat4ohalfSP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4ohalfSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma);
+  psImg2ToFloat4ohalfSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* factor, TextureRT *dst1, TextureRT *dst2);
 protected:
   D3DXHANDLE sSrc;
@@ -217,7 +217,7 @@ protected:
 //single pass interlaced ow==bw/2 and oh==bh/2
 class psImg2ToFloat4ohalfInterlacedSP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4ohalfInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma);
+  psImg2ToFloat4ohalfInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* factor, TextureRT *dst1, TextureRT *dst2);
   ~psImg2ToFloat4ohalfInterlacedSP();
 protected:
@@ -231,7 +231,7 @@ protected:
 //multi pass non interlaced ow==bw/2 and oh==bh/2
 class psImg2ToFloat4ohalfMP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4ohalfMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma);
+  psImg2ToFloat4ohalfMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* factor, TextureRT *dst1, TextureRT *dst2);
 protected:
   Pixelshader pass2;
@@ -242,7 +242,7 @@ protected:
 //multi pass interlaced ow==bw/2 and oh==bh/2
 class psImg2ToFloat4ohalfInterlacedMP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4ohalfInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma);
+  psImg2ToFloat4ohalfInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture* factor, TextureRT *dst1, TextureRT *dst2);
   ~psImg2ToFloat4ohalfInterlacedMP();
 protected:
@@ -257,7 +257,7 @@ protected:
 //single pass non interlaced ow!=bw/2 or oh!=bh/2
 class psImg2ToFloat4oSP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4oSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma);
+  psImg2ToFloat4oSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture *factor, TextureRT *dst1, TextureRT *dst2);
   ~psImg2ToFloat4oSP();
 protected:
@@ -269,7 +269,7 @@ protected:
 //single pass interlaced ow!=bw/2 or oh!=bh/2
 class psImg2ToFloat4oInterlacedSP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4oInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma);
+  psImg2ToFloat4oInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture *factor, TextureRT *dst1, TextureRT *dst2);
   ~psImg2ToFloat4oInterlacedSP();
 protected:
@@ -283,7 +283,7 @@ protected:
 //multi pass non interlaced ow!=bw/2 or oh!=bh/2
 class psImg2ToFloat4oMP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4oMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma);
+  psImg2ToFloat4oMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture *factor, TextureRT *dst1, TextureRT *dst2);
   ~psImg2ToFloat4oMP();
 protected:
@@ -296,7 +296,7 @@ protected:
 //multi pass interlaced ow!=bw/2 or oh!=bh/2
 class psImg2ToFloat4oInterlacedMP : public psImg2ToFloat4 {
 public:
-  psImg2ToFloat4oInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma);
+  psImg2ToFloat4oInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src, Texture *factor, TextureRT *dst1, TextureRT *dst2);
   ~psImg2ToFloat4oInterlacedMP();
 protected:
@@ -320,7 +320,7 @@ public:
 //non interlaced ow==bw/2 and oh==bh/2
 class psFloat4ToImg2ohalf : public psFloat4ToImg2 {
 public:
-  psFloat4ToImg2ohalf(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int srcwidth, int srcheight, bool chroma, bool fullsizefactor);
+  psFloat4ToImg2ohalf(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int srcwidth, int srcheight, bool chroma, int bits_per_pixel, bool fullsizefactor);
   HRESULT Apply(Texture* src1, Texture* src2, Texture *factor, TextureRT *dst);
 protected:
   D3DXHANDLE sSrc1;
@@ -331,7 +331,7 @@ protected:
 //interlaced ow==bw/2 and oh==bh/2
 class psFloat4ToImg2ohalfInterlaced : public psFloat4ToImg2 {
 public:
-  psFloat4ToImg2ohalfInterlaced(LPDIRECT3DDEVICE9 pDevice, TextureRT* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, bool chroma, bool fullsizefactor);
+  psFloat4ToImg2ohalfInterlaced(LPDIRECT3DDEVICE9 pDevice, TextureRT* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, bool chroma, int bits_per_pixel, bool fullsizefactor);
   HRESULT Apply(Texture* src1, Texture* src2, Texture *factor, TextureRT *dst);
   ~psFloat4ToImg2ohalfInterlaced();
 protected:
@@ -347,7 +347,7 @@ protected:
 //non interlaced ow!=bw/2 or oh!=bh/2
 class psFloat4ToImg2o : public psFloat4ToImg2 {
 public:
-  psFloat4ToImg2o(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int ow, int oh, int srcwidth, int srcheight, bool chroma);
+  psFloat4ToImg2o(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int ow, int oh, int srcwidth, int srcheight, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src1, Texture* src2, Texture *factor, TextureRT *dst);
   ~psFloat4ToImg2o();
 protected:
@@ -365,7 +365,7 @@ protected:
 //interlaced ow!=bw/2 or oh!=bh/2
 class psFloat4ToImg2oInterlaced : public psFloat4ToImg2 {
 public:
-  psFloat4ToImg2oInterlaced(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, int ow, int oh, bool chroma);
+  psFloat4ToImg2oInterlaced(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, int ow, int oh, bool chroma, int bits_per_pixel);
   HRESULT Apply(Texture* src1, Texture* src2, Texture *factor, TextureRT *dst);
   ~psFloat4ToImg2oInterlaced();
 protected:

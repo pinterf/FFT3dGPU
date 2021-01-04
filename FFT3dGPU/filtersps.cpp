@@ -332,14 +332,17 @@ HRESULT psKalmanMP::Apply(Texture* src, Texture* last, Texture* covarprocesslast
 }
 
 //*****************************************************************************************************************
+#define GETPIXEL2TYPEMACRO (src->GetType()->format==D3DFMT_A8L8 ? "A8L8" : src->GetType()->format==D3DFMT_G16R16 ? "G16R16" : src->GetType()->format==D3DFMT_G32R32F ? "G32R32F" : "A8L8")
 
-
-psImg2toImg4::psImg2toImg4(LPDIRECT3DDEVICE9 pDevice, Texture* Src, Texture* Dst) :
+psImg2toImg4::psImg2toImg4(LPDIRECT3DDEVICE9 pDevice, Texture* src, Texture* Dst, int bits_per_pixel) :
   Pixelshader(pDevice, SRC_SHADER, "Img2toImg4", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(1.0 / Src->GetWidth(), 0)), "OFFSET", (Src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(1.0 / src->GetWidth(), 0)), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(3), 2) : CreateMacroArray(2))
+      ,1) ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src"))
 {
-  RECT rect[2] = { Dst->GetRect(),Src->GetRect() };
+  RECT rect[2] = { Dst->GetRect(),src->GetRect() };
   quad = NEW NQuad(_pDevice, rect, 2, 1, true);
 }
 
@@ -348,23 +351,25 @@ HRESULT psImg2toImg4::Apply(Texture* src, TextureRT* dst)
   PROFILE_BLOCK
     HRESULT hr;
   if (FAILED(hr = quad->SetActive()))
-    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toFloat4", true);
+    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toImg4", true);
   if (FAILED(hr = dst->SetAsRenderTarget()))
-    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toFloat4", true);
+    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toImg4", true);
   if (FAILED(hr = quad->SetActive()))
-    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toFloat4", true);
+    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toImg4", true);
   if (FAILED(hr = src->SetAsTexture(GetSamplerIndex(sSrc))))
-    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toFloat4", true);
+    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toImg4", true);
   if (FAILED(hr = SetActive()))
-    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toFloat4", true);
+    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toImg4", true);
   if (FAILED(quad->Draw()))
-    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toFloat4", true);
+    return DXTrace("pixelshader.cpp", __LINE__, hr, "Img2toImg4", true);
   return hr;
 }
 
-psImg2toFloat4m0::psImg2toFloat4m0(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src) :
+psImg2toFloat4m0::psImg2toFloat4m0(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src, int bits_per_pixel) :
   psImg2toFloat4(pDevice, SRC_SHADER, "Img2toFloat4", D3DXGetPixelShaderProfile(pDevice),
-  (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", CreateMacroArray(1)) : 0)),
+    IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2)) : CreateMacroArray(1))
+    ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -411,9 +416,11 @@ HRESULT psImg2toFloat4m0::Apply(Texture* src, Texture* FactorLUT, TextureRT* dst
   return hr;//=_pDevice->EndScene();
 }
 
-psImg2toFloat4m2::psImg2toFloat4m2(LPDIRECT3DDEVICE9 pDevice, int bw, int bh, int repx, int repy, int border, Texture* src) :
+psImg2toFloat4m2::psImg2toFloat4m2(LPDIRECT3DDEVICE9 pDevice, int bw, int bh, int repx, int repy, int border, Texture* src, int bits_per_pixel) :
   psImg2toFloat4(pDevice, SRC_SHADER, "Img2toFloat4", D3DXGetPixelShaderProfile(pDevice),
-  (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", CreateMacroArray(1)) : 0)),
+    IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2)) : CreateMacroArray(1))
+    ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -603,9 +610,11 @@ HRESULT psFloat4toImg2m2::Apply(Texture* src, Texture* FactorLUT, TextureRT* dst
 }
 /**/
 //*****************************************************************************************************************
-psImg2toFloat4_2::psImg2toFloat4_2(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src) :
+psImg2toFloat4_2::psImg2toFloat4_2(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src, int bits_per_pixel) :
   Pixelshader(pDevice, SRC_SHADER, "Img2toFloat4_2", D3DXGetPixelShaderProfile(pDevice),
-  (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", CreateMacroArray(1)) : 0)),
+    IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2)) : CreateMacroArray(1))
+    ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -861,10 +870,17 @@ HRESULT psMeanSD::Apply(Texture* src,TextureRT* dst){
   return hr;
 }
 */
+
+#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX3 (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1))
+#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4 (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(4), 3) : CreateMacroArray(3), 2) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(3), 2) : CreateMacroArray(2))
+#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5 (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(5), 4) : CreateMacroArray(4), 3) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(4), 3) : CreateMacroArray(3))
 //**************
-psImg2ToFloat4oSP::psImg2ToFloat4oSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma) :
+psImg2ToFloat4oSP::psImg2ToFloat4oSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh - oh) / (float)src->GetHeight())), "OFFSET", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh - oh) / (float)src->GetHeight())), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    ,1),0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor")),
   oquad(NEW OQuad(pDevice))
@@ -899,11 +915,18 @@ HRESULT psImg2ToFloat4oSP::Apply(Texture* src, Texture *factor, TextureRT *dst1,
 }
 
 //***
-psImg2ToFloat4oMP::psImg2ToFloat4oMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma) :
+psImg2ToFloat4oMP::psImg2ToFloat4oMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET", SetMacroArray("PASS1", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(4), 3) : CreateMacroArray(3), 2) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2)), 1))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET", 
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        SetMacroArray("PASS1",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5
+      , 2), 1), 0)),
   pass2(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh - oh) / (float)src->GetHeight())), "OFFSET", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh - oh) / (float)src->GetHeight())), "OFFSET", 
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    ,1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor")),
   oquad(NEW OQuad(pDevice))
@@ -942,15 +965,12 @@ HRESULT psImg2ToFloat4oMP::Apply(Texture* src, Texture *factor, TextureRT *dst1,
 }
 
 //****
-psImg2ToFloat4oInterlacedSP::psImg2ToFloat4oInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma) :
+psImg2ToFloat4oInterlacedSP::psImg2ToFloat4oInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4", D3DXGetPixelShaderProfile(pDevice),
     VecToMacroArray((D3DXVECTOR2(0, 2 * (bh - oh) / (float)src->GetHeight())), "OFFSET",
-    (src->GetType()->real_elem_size == 2 ?
-      SetMacroArray("A8L8", chroma ?
-        SetMacroArray("CHROMA", CreateMacroArray(3), 2) :
-        CreateMacroArray(2), 1) :
-      chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) :
-      CreateMacroArray(1)))),
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    ,1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor")),
   oiquad(NEW OIQuad(pDevice))
@@ -1055,24 +1075,18 @@ HRESULT psImg2ToFloat4oInterlacedSP::Apply(Texture* src, Texture *factor, Textur
   return hr;
 }
 //****
-psImg2ToFloat4oInterlacedMP::psImg2ToFloat4oInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma) :
+psImg2ToFloat4oInterlacedMP::psImg2ToFloat4oInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
     VecToMacroArray((D3DXVECTOR2(0, 2 * (bh - oh) / (float)src->GetHeight())), "OFFSET",
-      SetMacroArray("PASS1",
-      (src->GetType()->real_elem_size == 2 ?
-        SetMacroArray("A8L8", chroma ?
-          SetMacroArray("CHROMA", CreateMacroArray(4), 3) :
-          CreateMacroArray(3), 2) :
-        chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) :
-        CreateMacroArray(2))), 1)),
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        SetMacroArray("PASS1",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5
+      ,0), 2), 1)),
   pass2(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
     VecToMacroArray((D3DXVECTOR2(0, 2 * (bh - oh) / (float)src->GetHeight())), "OFFSET",
-    (src->GetType()->real_elem_size == 2 ?
-      SetMacroArray("A8L8", chroma ?
-        SetMacroArray("CHROMA", CreateMacroArray(3), 2) :
-        CreateMacroArray(2), 1) :
-      chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) :
-      CreateMacroArray(1)))),
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    ,1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor")),
   oiquad(NEW OIQuad(pDevice))
@@ -1179,9 +1193,12 @@ HRESULT psImg2ToFloat4oInterlacedMP::Apply(Texture* src, Texture *factor, Textur
   return hr;
 }
 //********
-psImg2ToFloat4ohalfSP::psImg2ToFloat4ohalfSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma) :
+psImg2ToFloat4ohalfSP::psImg2ToFloat4ohalfSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+      DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    , 1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -1231,9 +1248,12 @@ HRESULT psImg2ToFloat4ohalfSP::Apply(Texture* src, Texture* factor, TextureRT *d
   return hr;
 }
 //****
-psImg2ToFloat4ohalfInterlacedSP::psImg2ToFloat4ohalfInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma) :
+psImg2ToFloat4ohalfInterlacedSP::psImg2ToFloat4ohalfInterlacedSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh) / (float)src->GetHeight())), "OFFSET", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh) / (float)src->GetHeight())), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    , 1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -1344,11 +1364,18 @@ HRESULT psImg2ToFloat4ohalfInterlacedSP::Apply(Texture* src, Texture* factor, Te
 }
 
 //********
-psImg2ToFloat4ohalfMP::psImg2ToFloat4ohalfMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma) :
+psImg2ToFloat4ohalfMP::psImg2ToFloat4ohalfMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET", SetMacroArray("PASS1", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(4), 3) : CreateMacroArray(3), 2) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2)), 1))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        SetMacroArray("PASS1",
+      DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5
+      , 1), 2), 0)),
   pass2(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh / 2) / (float)src->GetHeight())), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    , 1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -1402,11 +1429,18 @@ HRESULT psImg2ToFloat4ohalfMP::Apply(Texture* src, Texture* factor, TextureRT *d
 }
 
 //****
-psImg2ToFloat4ohalfInterlacedMP::psImg2ToFloat4ohalfInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma) :
+psImg2ToFloat4ohalfInterlacedMP::psImg2ToFloat4ohalfInterlacedMP(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh) / (float)src->GetHeight())), "OFFSET", SetMacroArray("PASS1", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(4), 3) : CreateMacroArray(3), 2) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2)), 1))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh) / (float)src->GetHeight())), "OFFSET", 
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        SetMacroArray("PASS1",
+      DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5
+      , 1), 2), 0)),
   pass2(pDevice, SRC_SHADER, "Img2ToFloat4MP", D3DXGetPixelShaderProfile(pDevice),
-    VecToMacroArray((D3DXVECTOR2(0, (bh) / (float)src->GetHeight())), "OFFSET", (src->GetType()->real_elem_size == 2 ? SetMacroArray("A8L8", chroma ? SetMacroArray("CHROMA", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1)))),
+    VecToMacroArray((D3DXVECTOR2(0, (bh) / (float)src->GetHeight())), "OFFSET",
+      IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
+        DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4
+    , 1), 0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
 {
@@ -1519,18 +1553,24 @@ HRESULT psImg2ToFloat4ohalfInterlacedMP::Apply(Texture* src, Texture* factor, Te
 
 
 
-psFloat4ToImg2o::psFloat4ToImg2o(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int ow, int oh, int srcwidth, int srcheight, bool chroma) :
-  psFloat4ToImg2(pDevice, SRC_SHADER, "Float4ToImg2Corner", D3DXGetPixelShaderProfile(pDevice), chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+psFloat4ToImg2o::psFloat4ToImg2o(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int ow, int oh, int srcwidth, int srcheight, bool chroma, int bits_per_pixel) :
+  psFloat4ToImg2(pDevice, SRC_SHADER, "Float4ToImg2Corner", D3DXGetPixelShaderProfile(pDevice), 
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   sSrc1(_pConstantTable->GetConstantByName(NULL, "Src")),
   sSrc2(_pConstantTable->GetConstantByName(NULL, "Src2")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor")),
   nooverlapxy(pDevice, SRC_SHADER, "Float4ToImg2Nooverlap", D3DXGetPixelShaderProfile(pDevice),
-    SetMacroArray("XY", chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
-  nooverlapzw(pDevice, SRC_SHADER, "Float4ToImg2Nooverlap", D3DXGetPixelShaderProfile(pDevice), chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    SetMacroArray("XY", 
+      chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
+  nooverlapzw(pDevice, SRC_SHADER, "Float4ToImg2Nooverlap", D3DXGetPixelShaderProfile(pDevice),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   horizontalxy(pDevice, SRC_SHADER, "Float4ToImg2Horizontal", D3DXGetPixelShaderProfile(pDevice),
-    SetMacroArray("XY", chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
-  horizontalzw(pDevice, SRC_SHADER, "Float4ToImg2Horizontal", D3DXGetPixelShaderProfile(pDevice), chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
-  vertical(pDevice, SRC_SHADER, "Float4ToImg2Vertical", D3DXGetPixelShaderProfile(pDevice), chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    SetMacroArray("XY",
+      chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
+  horizontalzw(pDevice, SRC_SHADER, "Float4ToImg2Horizontal", D3DXGetPixelShaderProfile(pDevice), 
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
+  vertical(pDevice, SRC_SHADER, "Float4ToImg2Vertical", D3DXGetPixelShaderProfile(pDevice),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   oquad(NEW OQuad(pDevice))
 {
   oquad->CreateVBi(width, height, bw, bh, ow, oh, srcwidth, srcheight);
@@ -1595,22 +1635,24 @@ psFloat4ToImg2o::~psFloat4ToImg2o()
   delete oquad;
 }
 //*******
-psFloat4ToImg2oInterlaced::psFloat4ToImg2oInterlaced(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, int ow, int oh, bool chroma) :
+psFloat4ToImg2oInterlaced::psFloat4ToImg2oInterlaced(LPDIRECT3DDEVICE9 pDevice, Texture* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, int ow, int oh, bool chroma, int bits_per_pixel) :
   psFloat4ToImg2(pDevice, SRC_SHADER, "Float4ToImg2Corner", D3DXGetPixelShaderProfile(pDevice),
-    chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   sSrc1(_pConstantTable->GetConstantByName(NULL, "Src")),
   sSrc2(_pConstantTable->GetConstantByName(NULL, "Src2")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor")),
   nooverlapxy(pDevice, SRC_SHADER, "Float4ToImg2Nooverlap", D3DXGetPixelShaderProfile(pDevice),
-    SetMacroArray("XY", chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
+    SetMacroArray("XY",
+      chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
   nooverlapzw(pDevice, SRC_SHADER, "Float4ToImg2Nooverlap", D3DXGetPixelShaderProfile(pDevice),
-    chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   horizontalxy(pDevice, SRC_SHADER, "Float4ToImg2Horizontal", D3DXGetPixelShaderProfile(pDevice),
-    SetMacroArray("XY", chroma ? SetMacroArray("CHROMA", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
+    SetMacroArray("XY",
+      chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1), 0)),
   horizontalzw(pDevice, SRC_SHADER, "Float4ToImg2Horizontal", D3DXGetPixelShaderProfile(pDevice),
-    chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   vertical(pDevice, SRC_SHADER, "Float4ToImg2Vertical", D3DXGetPixelShaderProfile(pDevice),
-    chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   oevenquad(NEW OIQuad(pDevice)),
   ooddquad(NEW OIQuad(pDevice))
 {
@@ -1714,6 +1756,7 @@ HRESULT psFloat4ToImg2oInterlaced::Apply(Texture* src1, Texture* src2, Texture *
 
   f.SetAsRenderTarget();
   float* fd=NEW float[f.Size()];*/
+  // fixme: really 0x88?
   _pDevice->Clear(0, 0, D3DCLEAR_TARGET, 0x00880000, 0, 0);
   _pDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
   _pDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
@@ -1823,9 +1866,9 @@ psFloat4ToImg2oInterlaced::~psFloat4ToImg2oInterlaced()
 
 //**************
 
-psFloat4ToImg2ohalf::psFloat4ToImg2ohalf(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int srcwidth, int srcheight, bool chroma, bool fullsizefactor) :
+psFloat4ToImg2ohalf::psFloat4ToImg2ohalf(LPDIRECT3DDEVICE9 pDevice, int width, int height, int bw, int bh, int srcwidth, int srcheight, bool chroma, int bits_per_pixel, bool fullsizefactor) :
   psFloat4ToImg2(pDevice, SRC_SHADER, "Float4ToImg2Corner", D3DXGetPixelShaderProfile(pDevice),
-    chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   sSrc1(_pConstantTable->GetConstantByName(NULL, "Src")),
   sSrc2(_pConstantTable->GetConstantByName(NULL, "Src2")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
@@ -1877,9 +1920,9 @@ HRESULT psFloat4ToImg2ohalf::Apply(Texture* src1, Texture* src2, Texture *factor
 }
 
 //*****
-psFloat4ToImg2ohalfInterlaced::psFloat4ToImg2ohalfInterlaced(LPDIRECT3DDEVICE9 pDevice, TextureRT* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, bool chroma, bool fullsizefactor) :
+psFloat4ToImg2ohalfInterlaced::psFloat4ToImg2ohalfInterlaced(LPDIRECT3DDEVICE9 pDevice, TextureRT* src, TextureRT* dst, int bw, int bh, GPUTYPES* _gtype, bool chroma, int bits_per_pixel, bool fullsizefactor) :
   psFloat4ToImg2(pDevice, SRC_SHADER, "Float4ToImg2Corner", D3DXGetPixelShaderProfile(pDevice),
-    chroma ? SetMacroArray("CHROMA", CreateMacroArray(1), 0) : 0),
+    chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(1), 0) : 0),
   sSrc1(_pConstantTable->GetConstantByName(NULL, "Src")),
   sSrc2(_pConstantTable->GetConstantByName(NULL, "Src2")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
