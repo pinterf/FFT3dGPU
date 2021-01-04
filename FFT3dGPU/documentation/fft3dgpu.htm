@@ -14,13 +14,13 @@ $Id: fft3dgpu.htm,v 1.1 2006/04/29 22:20:13 fizick Exp $
         <h1>FFT3DGPU</h1>
         <h2>Abstract</h2>
         <p>
-            <b>author:</b> Tonny Petersen aka tsp
+            <b>author:</b> Tonny Petersen aka tsp, additional work by pinterf
             <br>
-            <b>version:</b> 0.8.5<br>
+            <b>version:</b> 0.8.6<br>
             <b>download (until 0.8.2):</b> <a href="http://www.avisynth.org/tsp/">http://www.avisynth.org/tsp/</a><br>
             <b>download (from 0.8.3):</b> <a href="https://github.com/pinterf/FFT3dGPU">https://github.com/pinterf/FFT3dGPU/</a><br>
             <b>category:</b> Misc Plugins<br>
-            <b>requirements:</b> Y8, YV12, YV16, YV411, YV24 or YUY2 Colorspace (8 bits), 8 bit Planar RGB, Directx 9 graphics card<br>
+            <b>requirements:</b> Directx 9 graphics card; since 0.8.6 all 8-32 bits Y, YUV or planar RGB formats are supported incl. YUY2<br>
             <b>license:</b> GPL
         </p>
         <h2>Introduction</h2>
@@ -351,7 +351,13 @@ where x means any digit.
             <LI>
                 0.8.5 (20201101) - pinterf
                 - Avisynth+ 3.6 additional support: preserve frame properties
-                - Fix Kalman mode warning in fft3dgpu.hlsl (Nuihc88) 
+                - Fix bt=0 Kalman mode warning in fft3dgpu.hlsl (Nuihc88) 
+            </LI>
+            <LI>
+                0.8.6 (20210104) - pinterf
+                - Support 10-32 bit formats. Parameter ranges (smin, smax, sigmas) are the same for all bit depths
+                - parameter "precision" is ignored and is set to 2: always use 32 bit float internally
+                  Note: for 8 bits "precision" default is 0: calculation is done in 16 bit floating point type (s10m5) internally
             </LI>
         </ul>
         <p>Sourcecode released under GPL see copying.txt</p>

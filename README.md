@@ -1,9 +1,12 @@
 # FFT3dGPU
 FFT3dGPU
 
-An attempt to compile FFT3dGPU under Visual Studio 2017 with current Avisynth+ headers for x86/x64.
-
 Changelog (pinterf)
+**v0.8.6 (20210104)**
+- Support 10-32 bit formats. Parameter ranges (smin, smax, sigmas) are the same for all bit depths.
+- For 10-32 bit clips parameter "precision" is ignored and is set to 2: always use 32 bit float internally
+  Note: for 8 bits "precision" default is 0: calculation is done in 16 bit floating point type (s10m5) internally
+
 **v0.8.5 (20201101)**
 - Avisynth+ 3.6 additional support: preserve frame properties
 - Fix bt=0 Kalman mode warning in fft3dgpu.hlsl (Nuihc88) 
