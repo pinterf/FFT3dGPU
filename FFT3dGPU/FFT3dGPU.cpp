@@ -165,9 +165,10 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   float _sigma2, float _sigma3, float _sigma4, FFTCODE fftcode,
   FFT3dGPUallPlane* getdst, int _xRatio, int _yRatio, IScriptEnvironment* env) :
   GenericVideoFilter(cl1), 
-  isLumaPlane(_plane <= 0), // _plane==0 => luma or RGBfirtPlane, _plane==1 => chroma U and V or RGB2nd3rdplane
+  isLumaPlane(_plane <= 0), // _plane==0 => luma or RGBfirstPlane, _plane==1 => chroma U and V or RGB2nd3rdplane
   isYUY2(vi.IsYUY2()),
   isRGB(vi.IsRGB()),
+  bits_per_pixel(vi.BitsPerComponent()),
   sigma(_sigma / 255), beta(_beta), bw(_bw), bh(_bh), height(vi.height / _yRatio), width(vi.width / _xRatio), img(0),
   FImg(0), FImg1(0), bt(_bt > 0 ? _bt : 1), bm(_bt), useHalf(precision == FLOAT16), sharpen(sharpen != 0), mode(_mode), caches{ 0,0,0 }, imgp(0), mutex(0),
   pDevice(d3ddevice.Device()), gtype(D3Dwindow.GetGPUType()), d3ddevice(D3Dwindow), NVPERF(NVPerf), fft(0),
@@ -183,8 +184,8 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   try { env->CheckVersion(8); }
   catch (const AvisynthError&) { has_at_least_v8 = false; }
 
-  smin /= 255;
-  smax /= 255;
+  smin /= 255; // convert to 0..1
+  smax /= 255; // convert to 0..1
 
   LOG("FFT3dGPU constructor address: " << std::hex << (unsigned int)this);
   imgp = 0;
@@ -239,8 +240,17 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
     oh = bh / 2;
   if (ow * 2 > bw)
     ow = bw / 2;
+
+  // FLOAT16 precision is not enough for 10+ bits (s10e5), using FLOAT32_ALL for bits_per_pixel>8
+  if (bits_per_pixel > 8)
+    precision = FLOAT32_ALL;
+
   if (precision<FLOAT16 || precision>FLOAT32_ALL)
     precision = FLOAT32_FFT;
+
+  // now precision is final
+  useHalf = precision == FLOAT16;
+
   if (wintype < 0 || wintype>2)
     wintype = 0;
 
@@ -274,23 +284,65 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   totw = nx * bw;
   toth = ny * bh;
   LOG("Creating textures");
+  
+  // for historical reasons (filter was for only YUV) RGB's 1st and 2nd-3rd plane are handled separately
   if (isLumaPlane)
   {
-    UploadImg[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-    UploadImg1[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-    UploadImg2[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-    DownloadImg[0] = NEW TextureRT(pDevice, (width + 3) >> 2, height, gtype->FIXED4(), hr);
+    // fixed2: two 8 bit pixels / unit
+    if (bits_per_pixel == 8) {
+      UploadImg[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
+      UploadImg1[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
+      UploadImg2[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
+      DownloadImg[0] = NEW TextureRT(pDevice, (width + 3) >> 2, height, gtype->FIXED4(), hr);
+    } 
+    else if (bits_per_pixel <= 16) {
+      UploadImg[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2_16(), hr);
+      UploadImg1[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2_16(), hr);
+      UploadImg2[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2_16(), hr);
+      DownloadImg[0] = NEW TextureRT(pDevice, (width + 3) >> 2, height, gtype->FIXED4_16(), hr);
+    }
+    else {
+      // 32 bit float
+      UploadImg[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FLOAT2(), hr);
+      UploadImg1[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FLOAT2(), hr);
+      UploadImg2[0] = NEW TextureM(pDevice, (width + 1) >> 1, height, gtype->FLOAT2(), hr);
+      DownloadImg[0] = NEW TextureRT(pDevice, (width + 3) >> 2, height, gtype->FLOAT4(), hr);
+    }
   }
   else
   {
-    UploadImg[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImg1[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImg2[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    DownloadImg[1] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
-    UploadImg[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImg1[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    UploadImg2[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
-    DownloadImg[2] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
+    // chroma: 2 planes U and V
+    if (bits_per_pixel == 8) {
+      UploadImg[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+      UploadImg1[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+      UploadImg2[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+      DownloadImg[1] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
+      UploadImg[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+      UploadImg1[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+      UploadImg2[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2(), hr);
+      DownloadImg[2] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4(), hr);
+    }
+    else if (bits_per_pixel <= 16) {
+      UploadImg[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2_16(), hr);
+      UploadImg1[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2_16(), hr);
+      UploadImg2[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2_16(), hr);
+      DownloadImg[1] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4_16(), hr);
+      UploadImg[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2_16(), hr);
+      UploadImg1[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2_16(), hr);
+      UploadImg2[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FIXED2_16(), hr);
+      DownloadImg[2] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FIXED4_16(), hr);
+    }
+    else {
+      // 32 bit float
+      UploadImg[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FLOAT2(), hr);
+      UploadImg1[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FLOAT2(), hr);
+      UploadImg2[1] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FLOAT2(), hr);
+      DownloadImg[1] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FLOAT4(), hr);
+      UploadImg[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FLOAT2(), hr);
+      UploadImg1[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FLOAT2(), hr);
+      UploadImg2[2] = NEW TextureM(pDevice, (width + 1) / 2, height, gtype->FLOAT2(), hr);
+      DownloadImg[2] = NEW TextureRT(pDevice, (width + 3) / 4, height, gtype->FLOAT4(), hr);
+    }
   }
   LOG("Setup texture Img & Imgp");
   if (useHalf)
@@ -336,6 +388,11 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   LOG("Creating WiennerFilter class..");
   D3DXVECTOR2 sigma2;
   D3DXVECTOR2 beta2;
+
+  // no need adjusting parameters for different bit depths
+  // smin, smax, sigmas
+  // Internally everything is normalized to the 0..1.0 range
+
   float s = sigma * sigma*bt*bw*bh;
   sigma2 = D3DXVECTOR2(beta*s, s);
   beta2 = D3DXVECTOR2((beta - 1.0) / beta, beta);
@@ -403,11 +460,10 @@ FFT3dGPU::FFT3dGPU(PClip cl1, float _sigma, float _beta, int _bw, int _bh, int _
   LOG("Setup ImgStream...");
   if (mode == 1) {
     const bool useChromaDisplacementMacro = !isLumaPlane && !isRGB;
-    // later is HLSL: defines the CHROMANORM macro to 128.0/255.0 only for chroma, to shift it to the +/-0.5 range instead of 0..1.0
-    convert2 = NEW ImgStream2(bw, bh, ow, oh, isLumaPlane ? UploadImg[0] : UploadImg[1], imgp->first, isLumaPlane ? DownloadImg[0] : DownloadImg[1], useChromaDisplacementMacro, wintype, interlaced, pDevice, gtype, useHalf, hr);
+    convert2 = NEW ImgStream2(bw, bh, ow, oh, isLumaPlane ? UploadImg[0] : UploadImg[1], imgp->first, isLumaPlane ? DownloadImg[0] : DownloadImg[1], useChromaDisplacementMacro, wintype, interlaced, pDevice, gtype, useHalf, bits_per_pixel, hr);
   }
   else
-    convert = NEW ImgStream(bw, nx, bh, ny, mode, width, height, pDevice, gtype, useHalf, hr, border);
+    convert = NEW ImgStream(bw, nx, bh, ny, mode, width, height, pDevice, gtype, useHalf, bits_per_pixel, hr, border);
   LOG("done")
 
     LOG("Push texture vector");
@@ -716,6 +772,8 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
   PVideoFrame dst;
   PVideoFrame src;
 
+  const int pixelsize = vi.ComponentSize(); // 1, 2 or 4 bytes
+
   if (GetDst)
     dst = GetDst->GetDstFrame();//from FFT3dGPUallPlane so we don't need to bltbit the luma/chroma
   else
@@ -778,7 +836,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
               {
                 src = child->GetFrame(n - current + i, env);
                 if (!isYUY2) {
-                  UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+                  UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
                 }
                 else
                   UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
@@ -819,7 +877,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
               {
                 src = child->GetFrame(n - current + i, env);
                 if (!isYUY2)
-                  UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+                  UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
                 else
                   UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
                 convert2->ImgToTexture(upload, imgp);
@@ -870,7 +928,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
         {
           src = child->GetFrame(n, env);
           if (!isYUY2)
-            UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+            UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
           else
             UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
           convert->ImgToStream(upload, img);
@@ -925,7 +983,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
           PROFILE_BLOCK
             src = child->GetFrame(n, env);
           if (!isYUY2)
-            UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+            UploadToTexture(upload, src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
           else
             UploadInterleavedToFixedTexture(upload, src->GetReadPtr() + (planeNo == 0 ? 0 : planeNo == 1 ? 1 : 3), src->GetPitch(), planeNo == 0 ? 2 : 4);
           //upload->SaveTex("d:\\src.dds");
@@ -1050,7 +1108,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
       //UploadToTexture(UploadImgY2,src->GetReadPtr(PLANAR_Y),src->GetPitch(PLANAR_Y));
       if (!isYUY2) {
         const int currentPlane = planes[0]; // Y or G
-        UploadToTexture(UploadImg2[0], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+        UploadToTexture(UploadImg2[0], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
       }
       else
         UploadInterleavedToFixedTexture(UploadImg2[0], src->GetReadPtr(), src->GetPitch(), 2);
@@ -1063,9 +1121,9 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
       if (!isYUY2)
       {
         int currentPlane = planes[1]; // 1: U or B  2: V or R
-        UploadToTexture(UploadImg2[1], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+        UploadToTexture(UploadImg2[1], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
         currentPlane = planes[2];
-        UploadToTexture(UploadImg2[2], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane));
+        UploadToTexture(UploadImg2[2], src->GetReadPtr(currentPlane), src->GetPitch(currentPlane) / pixelsize);
       }
       else
       {
@@ -1085,7 +1143,7 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
       //convert2->TextureToSrc(imgp,dst->GetWritePtr(PLANAR_Y),dst->GetPitch(PLANAR_Y));
       if (!isYUY2) {
         const int currentPlane = planes[0]; // Y or G
-        DownloadFromTexture(DownloadImg[0], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane), true);
+        DownloadFromTexture(DownloadImg[0], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane) / pixelsize, true);
       }
       else
         DownloadFromFixedTextureInterleaved(DownloadImg[0], dst->GetWritePtr(), dst->GetPitch(), true, 2);
@@ -1096,9 +1154,9 @@ PVideoFrame FFT3dGPU::GetFrame(int n, IScriptEnvironment* env)
       if (!isYUY2)
       {
         int currentPlane = planes[1]; // 1: U or B  2: V or R
-        DownloadFromTexture(DownloadImg[1], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane), true);
+        DownloadFromTexture(DownloadImg[1], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane) / pixelsize, true);
         currentPlane = planes[2];
-        DownloadFromTexture(DownloadImg[2], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane), true);
+        DownloadFromTexture(DownloadImg[2], dst->GetWritePtr(currentPlane), dst->GetPitch(currentPlane) / pixelsize, true);
       }
       else
       {
@@ -1196,9 +1254,6 @@ AVSValue __cdecl Create_fft3dGPU(AVSValue args, void* user_data, IScriptEnvironm
     if (plane == 4)
       plane = 0; // all planes means luma only
   }
-
-  if (vi.BitsPerComponent() != 8)
-    env->ThrowError("FFT3dGPU: only 8 bit clips are supported");
 
   PClip retval;
   FFT3dGPUallPlane* getdst = 0;

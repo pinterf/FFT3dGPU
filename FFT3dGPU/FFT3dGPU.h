@@ -84,6 +84,7 @@ protected:
   bool isLumaPlane; //1=luma 2=chroma
   bool isYUY2;
   bool isRGB;
+  int bits_per_pixel;
 
   //caches the 2d fft on the GPU
   GPUCache* caches[3];
