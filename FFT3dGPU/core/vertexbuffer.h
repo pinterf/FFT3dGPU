@@ -28,6 +28,8 @@ struct textcoord {
   FLOAT u, v;
 };
 
+// vertex color is always DWORD
+// not related to video clip bit depths
 struct vertex {
   vertex() {};
   FLOAT x, y, z, rhw; // The transformed position for the vertex

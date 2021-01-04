@@ -69,6 +69,10 @@ NQuad::NQuad(LPDIRECT3DDEVICE9 pDevice, RECT* Rect, int size, int RectOffset, bo
   fvf = fvf | D3DFVF_XYZRHW | D3DFVF_DIFFUSE | ((size >= 1)*D3DFVF_TEX1) | ((size >= 2)*D3DFVF_TEX2) | ((size >= 3)*D3DFVF_TEX3) | ((size >= 4)*D3DFVF_TEX4)
     | ((size >= 5)*D3DFVF_TEX5) | ((size >= 6)*D3DFVF_TEX6) | ((size >= 7)*D3DFVF_TEX7) | ((size >= 8)*D3DFVF_TEX8);
 
+  // Weights used in color (PF: really weights?)
+  // 0xFF / 255 = 1.0
+  // 0x80 / 255  ~ 0.5
+
   for (int i = 0; i < 4; i++) {
     v[i].rhw = 1.0f;
     v[i].z = 0.5f;
@@ -365,6 +369,10 @@ void MQuad::CreateVB(int width, int height, int bw, int bh, int repx, int repy, 
   //repx++;repy++;
   int borderx = border;
   int bordery = border * 2;
+  // Weights used in color (always D3DCOLOR 4x8 bit):
+  // 0xFF / 255 = 1.0
+  // 0x80 / 255  ~ 0.5
+  // 0x40 / 255  ~ 0.25
   fvf = D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1 | D3DFVF_TEX2 | D3DFVF_TEX3;
   int widthRT = bw * repx;
   int heightRT = bh * repy;
@@ -572,10 +580,10 @@ OQuad::~OQuad() {
 }
 
 //  vertex0 x----x vertex1
-//			|	/|
-//			|  / |
-//			| /  |
-//			|/   |
+//          |   /|
+//          |  / |
+//          | /  |
+//          |/   |
 //  vertex2 x----x vertex3
 void OQuad::CreateVB(int width, int height, int bw, int bh, int ow, int oh) {
   int nx = ((width + ow - 1) / (bw - ow) + 1 + 1) / 2;
@@ -671,23 +679,23 @@ void OQuad::CreateVB(int width, int height, int bw, int bh, int ow, int oh) {
 }
 
 //vertical block=# horizontalblock=* nooverlap block=0 cornerblock=%
-//					
-//Grid:	/-------width----------\
-//	/	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	h	****%****%****%****%****
-//	e	0000#0000#0000#0000#0000
-//	i	0000#0000#0000#0000#0000
-//	g	0000#0000#0000#0000#0000
-//	h	0000#0000#0000#0000#0000
-//	t	****%****%****%****%****
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	\	****%****%****%****%****
+//
+//Grid:/-------width----------\
+//   / 0000#0000#0000#0000#0000
+//   | 0000#0000#0000#0000#0000
+//   | 0000#0000#0000#0000#0000
+//   | 0000#0000#0000#0000#0000
+//   h ****%****%****%****%****
+//   e 0000#0000#0000#0000#0000
+//   i 0000#0000#0000#0000#0000
+//   g 0000#0000#0000#0000#0000
+//   h 0000#0000#0000#0000#0000
+//   t ****%****%****%****%****
+//   | 0000#0000#0000#0000#0000
+//   | 0000#0000#0000#0000#0000
+//   | 0000#0000#0000#0000#0000
+//   | 0000#0000#0000#0000#0000
+//   \ ****%****%****%****%****
 
 //Factor texture: xy=xy factor,zw=zw factor
 
@@ -723,12 +731,15 @@ void OQuad::CreateVBi(int width, int height, int bw, int bh, int ow, int oh, int
   int index = 0;
   int voffset = 0;
   //  vertex0 x----x vertex1
-  //			|	/|
-  //			|  / |
-  //			| /  |
-  //			|/   |
+  //          |   /|
+  //          |  / |
+  //          | /  |
+  //          |/   |
   //  vertex2 x----x vertex3
 
+  // Weights used in color:
+  // 0xFF / 255 = 1.0
+  // 0xDF / 255 = 0.8745 ~ 7/8
 
   //Setup corner blocks
   startindexcornerblock = 0;
@@ -1507,23 +1518,23 @@ void OIQuad::CreateVB(int width, int height, int bw, int bh, int ow, int oh) {
 }
 
 //vertical block=# horizontalblock=* nooverlap block=0 cornerblock=%
-//					
-//Grid:	/-------width----------\
-//	/	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	h	****%****%****%****%****
-//	e	0000#0000#0000#0000#0000
-//	i	0000#0000#0000#0000#0000
-//	g	0000#0000#0000#0000#0000
-//	h	0000#0000#0000#0000#0000
-//	t	****%****%****%****%****
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	|	0000#0000#0000#0000#0000
-//	\	****%****%****%****%****
+//
+//Grid: /-------width----------\
+//    / 0000#0000#0000#0000#0000
+//    | 0000#0000#0000#0000#0000
+//    | 0000#0000#0000#0000#0000
+//    | 0000#0000#0000#0000#0000
+//    h ****%****%****%****%****
+//    e 0000#0000#0000#0000#0000
+//    i 0000#0000#0000#0000#0000
+//    g 0000#0000#0000#0000#0000
+//    h 0000#0000#0000#0000#0000
+//    t ****%****%****%****%****
+//    | 0000#0000#0000#0000#0000
+//    | 0000#0000#0000#0000#0000
+//    | 0000#0000#0000#0000#0000
+//    | 0000#0000#0000#0000#0000
+//    \ ****%****%****%****%****
 
 //Factor texture: xy=xy factor,zw=zw factor
 
@@ -1559,10 +1570,10 @@ void OIQuad::CreateVBi(int width, int height, int bw, int bh, int ow, int oh, in
   int index = 0;
   int voffset = 0;
   //  vertex0 x----x vertex1
-  //			|	/|
-  //			|  / |
-  //			| /  |
-  //			|/   |
+  //          |   /|
+  //          |  / |
+  //          | /  |
+  //          |/   |
   //  vertex2 x----x vertex3
 
 
