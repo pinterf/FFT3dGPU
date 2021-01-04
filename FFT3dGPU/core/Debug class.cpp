@@ -28,7 +28,7 @@ void WriteMemFloatToFile(float* src, int width, int height, int elemsize, const 
   for (int j = 0, offset = 0; j < height; j++) {
     outfile << std::endl;
     for (int i = 0; i < width*elemsize; i += 1) {
-      outfile << std::showpos << std::fixed << std::setprecision(0) << std::setw(8) << src[offset++] * 255 << ((i + 1) % elemsize ? " " : "   ");
+      outfile << std::showpos << std::fixed << std::setprecision(0) << std::setw(4) << src[offset++] * 255 << ((i + 1) % elemsize ? " " : "   ");
       /*
           for(int i=0;i<width*elemsize;i+=4){
             outfile <<std::showpos<<std::fixed<<std::setprecision(4)<<std::setw(8)<<(src[offset]*src[offset]+src[offset+2]*src[offset+2])<<((i+1)%elemsize?" ":"   ");
@@ -46,6 +46,17 @@ void WriteMemFixedToFile(const unsigned char* src, int width, int height, int el
     outfile << std::endl;
     for (int i = 0; i < width*elemsize; i += 1) {
       outfile << std::showpos << std::setw(8) <</*static_cast<int>*/(sqrt((float)src[offset++] / 255)) << ((i + 1) % elemsize ? " " : "   ");
+    }
+  }
+}
+
+void WriteMemFixed16ToFile(const uint16_t* src, int width, int height, int elemsize, const char* SaveFilename, const char* Tittle, bool append) {
+  std::ofstream outfile(SaveFilename, (append ? std::ios_base::app : std::ios_base::out));
+  outfile << std::endl << std::endl << std::endl << src << std::endl << Tittle << std::endl;
+  for (int j = 0, offset = 0; j < height; j++) {
+    outfile << std::endl;
+    for (int i = 0; i < width * elemsize; i += 1) {
+      outfile << std::showpos << std::setw(8) <</*static_cast<int>*/(sqrt((float)src[offset++] / 65535)) << ((i + 1) % elemsize ? " " : "   ");
     }
   }
 }

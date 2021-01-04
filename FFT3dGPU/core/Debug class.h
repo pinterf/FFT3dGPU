@@ -223,5 +223,6 @@ void Qend();
 double Qendtime();
 
 void WriteMemFixedToFile(const unsigned char* src, int width, int height, int elemsize, const char* SaveFilename, const char* Tittle, bool append);
+void WriteMemFixed16ToFile(const uint16_t* src, int width, int height, int elemsize, const char* SaveFilename, const char* Tittle, bool append);
 void WriteMemFloatToFile(float* src, int width, int height, int elemsize, const char* SaveFilename, const char* Tittle, bool append);
 #endif
