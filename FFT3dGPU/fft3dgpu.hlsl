@@ -18,6 +18,26 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA, or visit
 // http://www.gnu.org/copyleft/gpl.html .
 
+#if CHROMA_BIT_DEPTH==8
+#define RANGE_HALF (1 << (8 - 1))
+#define RANGE_FULL (float)((1 << 8) - 1)
+#define CHROMA_CORR RANGE_HALF/RANGE_FULL
+#elif CHROMA_BIT_DEPTH<=8
+// 10, 12 and 14 bits are normalized to 16 bits as well
+#define RANGE_HALF (1 << (16 - 1))
+#define RANGE_FULL (float)((1 << 16) - 1)
+#define CHROMA_CORR RANGE_HALF/RANGE_FULL
+#else
+#define CHROMA_CORR 0
+#endif
+#define CHROMANORM float4(CHROMA_CORR, CHROMA_CORR, CHROMA_CORR, CHROMA_CORR)
+
+#if BIT_DEPTH>8 && BIT_DEPTH<16
+#define BITDEPTHNORM float4(1 << (16 - BIT_DEPTH), 1 << (16 - BIT_DEPTH),1 << (16 - BIT_DEPTH),1 << (16 - BIT_DEPTH))
+#define INV_BITDEPTHNORM float4(1.0 / (1 << (16 - BIT_DEPTH)), 1.0 / (1 << (16 - BIT_DEPTH)),1.0 / (1 << (16 - BIT_DEPTH)),1.0 / (1 << (16 - BIT_DEPTH)))
+#define MAX_PIXEL_VALUE float4((float)((1 << BIT_DEPTH) - 1), (float)((1 << BIT_DEPTH) - 1), (float)((1 << BIT_DEPTH) - 1), (float)((1 << BIT_DEPTH) - 1))
+#endif  
+
 
 #define HEIGHT 224	
 
@@ -72,25 +92,45 @@ struct PS_OUTPUT2
 #endif
 };
 
+#if defined(G16R16) || defined(G32R32F)
+// rg is xy
+#define SW1 rg
+#else
+#ifdef A8L8
+#define SW1 xw
+#else
+#define SW1 xy
+#endif
+#endif
 
-
+// Converts input (already normalized float) texture buffer to a four-unit buffer.
+// When input was originally less than 16 bits but still uint16_t (typically 10, 12 and 14 bits),
+// the converted range does not match with 0..1, rather 0 - 1023/65535 in a 10 bit input case.
+// We stretch it to match with full 16 bit range in order to filtering parameters act the same
+// way for all bit depths.
+// In conversion: Img2toFloat4 (two kinds of), Img2toFloat4_2 and Img2ToFloat4MP 
+// Out conversion: Img2toImg4
 float4 Img2toFloat4( PS_INPUT4 In) :COLOR 
 {
 	float4 src;
 	float4 dst;
 	float2 factor;
-	#ifdef A8L8
-	float2 img=tex2D(Src,In.texCoord[1]).xw;
-	float2 img_shifted=tex2D(Src,In.texCoord[2]).xw;
-	#else
-	float2 img=tex2D(Src,In.texCoord[1]).xy;
-	float2 img_shifted=tex2D(Src,In.texCoord[2]).xy;
-	#endif
+	float2 img=tex2D(Src,In.texCoord[1]).SW1;
+	float2 img_shifted=tex2D(Src,In.texCoord[2]).SW1;
+	// D3DFMT_A8L8 from D3DFMT_A8R8G8B8 -> A=A L=G: x..w
+  // D3DFMT_G16R16 from D3DFMT_A16B16G16R16 -> xy
+  // D3DFMT_G32R32F from D3DFMT_A32B32G32R32F -> xy
+  
 	factor.xy=tex2D(Factor,In.texCoord[0]).xy;
 	//factor.zw=tex2D(Factor,In.texCoord[1]);
 	src.xy=img;
 	src.zw=img_shifted;//z??
 	dst.xzyw=src*factor.xyxy; //*factor.xyxy;
+
+#ifdef BITDEPTHNORM
+  dst = dst * BITDEPTHNORM;
+#endif
+  
 	return dst;
 }
 
@@ -117,7 +157,7 @@ float4 Float4toImg2( PS_INPUT4 In) : COLOR
 	#else
 	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(Factor,In.texCoord[1]).xy+tex2D(Src,In.texCoord[0]).yw*tex2D(Factor,In.texCoord[0]).xy;
 	#endif
-	return dst.xyyy;
+  return dst.xyyy;
 }
 
 
@@ -127,19 +167,19 @@ float4 Img2toFloat4_2( PS_INPUT4 In) :COLOR
 	float4 src;
 	float4 dst;
 	float2 factor;
-	#ifdef A8L8
-	float2 img=tex2D(Src,In.texCoord[2]).xw;
-	float2 img_shifted=tex2D(Src,In.texCoord[1]).xw;
-	#else
-	float2 img=tex2D(Src,In.texCoord[2]).xy;
-	float2 img_shifted=tex2D(Src,In.texCoord[1]).xy;
-	#endif
+	float2 img=tex2D(Src,In.texCoord[2]).SW1;
+	float2 img_shifted=tex2D(Src,In.texCoord[1]).SW1;
 	factor.xy=tex2D(Factor,In.texCoord[0]).xy;
 	
 	src.xy=img;
 	src.zw=img_shifted;//z??
 	dst.xzyw=src*factor.xyxy; //*factor.xyxy;
-	return dst;
+  
+#ifdef BITDEPTHNORM
+  dst = dst * BITDEPTHNORM;
+#endif
+
+  return dst;
 }
 
 float4 Float4toImg2_2( PS_INPUT4 In) : COLOR
@@ -153,7 +193,8 @@ float4 Float4toImg2_2( PS_INPUT4 In) : COLOR
 	
 	dst=tex2D(Src,In.texCoord[1]).xz*tex2D(Factor,In.texCoord[1]).xy+tex2D(Src,In.texCoord[0]).yw*tex2D(Factor,In.texCoord[0]).xy
 	+tex2D(I,In.texCoord[2]).xz*tex2D(Factor,In.texCoord[2]).xy+tex2D(I,In.texCoord[3]).yw*tex2D(Factor,In.texCoord[3]).xy;
-	return dst.xyyy;
+
+  return dst.xyyy;
 }
 //*******************************************************************************************************
 
@@ -836,13 +877,6 @@ float4 KalmanMP(PS_INPUT In):COLOR
 }
 #endif
 	
-#ifdef CHROMA
-#define CHROMANORM float4(128.0/255.0,128.0/255.0,128.0/255.0,128.0/255.0)
-#else
-#define CHROMANORM float4(0,0,0,0)
-#endif
-
-
 float4 Float4ToImg2Corner(PS_INPUT4 In):COLOR{
 float4 dst;
 float4 tex0;
@@ -899,14 +933,6 @@ return dst+CHROMANORM;
 }
 
 
-#ifdef A8L8
-#define SW1 xw
-#else
-#define SW1 xy
-#endif
-
-
-
 #ifdef OFFSET
 
 PS_OUTPUT Img2ToFloat4(PS_INPUT4 In){
@@ -916,8 +942,15 @@ dst.o[0].xz=tex2D(Src,In.texCoord[0]).SW1;
 dst.o[0].yw=tex2D(Src,In.texCoord[1]).SW1;
 dst.o[1].xz=tex2D(Src,In.texCoord[0]+OFFSET).SW1;
 dst.o[1].yw=tex2D(Src,In.texCoord[1]+OFFSET).SW1;
+
+#ifdef BITDEPTHNORM
+  dst.o[0] = dst.o[0] * BITDEPTHNORM;
+  dst.o[1] = dst.o[1] * BITDEPTHNORM;
+#endif
+
 dst.o[0]=(dst.o[0]-CHROMANORM)*factor;
 dst.o[1]=(dst.o[1]-CHROMANORM)*factor;
+
 //dst.o[0]=float4(In.texCoord[2].y*16,In.texCoord[1].y*32,In.texCoord[0].y*32,(In.texCoord[0]+OFFSET).y*32);
 return dst;
 }
@@ -932,6 +965,11 @@ dst.yw=tex2D(Src,In.texCoord[1]).SW1;
 dst.xz=tex2D(Src,In.texCoord[0]+OFFSET).SW1;
 dst.yw=tex2D(Src,In.texCoord[1]+OFFSET).SW1;
 #endif
+
+#ifdef BITDEPTHNORM
+  dst = dst * BITDEPTHNORM;
+#endif
+
 dst=(dst-CHROMANORM);
 
 return dst*factor;
@@ -942,8 +980,25 @@ return dst*factor;
 float4 Img2toImg4( PS_INPUT In ) :COLOR
 {
 float4 dst=float4(0,0,0,0);
+#if defined(G16R16) || defined(G32R32F)
+/*0123 becomes 2103 order at 16 bits
+             xyzw
+             zyxw 
+*/             
+dst.xy=tex2D(Src,In.texCoord).SW1;
+dst.zw=tex2D(Src,In.texCoord+OFFSET).SW1;
+#else
 dst.zy=tex2D(Src,In.texCoord).SW1;
 dst.xw=tex2D(Src,In.texCoord+OFFSET).SW1;
+#endif
+
+#if defined(INV_BITDEPTHNORM)
+  // scale back to 10-14 bit range   
+  dst = dst * INV_BITDEPTHNORM;
+  // limit to valid range
+  dst = min(dst, MAX_PIXEL_VALUE);;
+#endif
+
 return dst;
 }
 #endif
