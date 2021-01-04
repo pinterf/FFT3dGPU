@@ -21,6 +21,7 @@
 #include "texture.h"
 #include "Debug class.h"
 #include <dxerr.h>
+#include <algorithm>
 
 int Texture::_ID = 0;
 
@@ -77,6 +78,7 @@ GPUTYPES::GPUTYPES(LPDIRECT3DDEVICE9 pDevice) {
   else
     _half1.RenderTarget = NEW  types(1, _half2.RenderTarget->real_elem_size, _half2.RenderTarget->format, _HALF);
 
+  // for 8 bit integer formats
   if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_A8R8G8B8)))
     _fixed4.RenderTarget = NEW  types(4, 4, D3DFMT_A8R8G8B8, _FIXED);
   else
@@ -92,6 +94,26 @@ GPUTYPES::GPUTYPES(LPDIRECT3DDEVICE9 pDevice) {
   else
     _fixed1.RenderTarget = NEW  types(1, _fixed2.RenderTarget->real_elem_size, _fixed2.RenderTarget->format, _FIXED);
 
+  // for 10-16 bit integer formats
+  if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_A16B16G16R16)))
+    _fixed4_16.RenderTarget = NEW  types(4, 4, D3DFMT_A16B16G16R16, _FIXED16);
+  else
+    _fixed4_16.RenderTarget = NEW  types(4, 0, D3DFMT_UNKNOWN, _FIXED16);
+  
+  /* //
+  No luck with G13R16 render target. On my machine A8L8 is explititely failed on CheckDeviceFormat, must be simulated
+  */
+  if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_G16R16)))
+    _fixed2_16.RenderTarget = NEW  types(2, 2, D3DFMT_G16R16, _FIXED16);
+  else
+    _fixed2_16.RenderTarget = NEW  types(2, _fixed4_16.RenderTarget->real_elem_size, _fixed4_16.RenderTarget->format, _FIXED16);
+
+  if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_L16)))
+    _fixed1_16.RenderTarget = NEW  types(1, 1, D3DFMT_L16, _FIXED16);
+  else
+    _fixed1_16.RenderTarget = NEW  types(1, _fixed2_16.RenderTarget->real_elem_size, _fixed2_16.RenderTarget->format, _FIXED16);
+
+  // Set Managed
   if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_A32B32G32R32F)))
     _float4.Managed = NEW  types(4, 4, D3DFMT_A32B32G32R32F, _FLOAT);
   else
@@ -122,6 +144,7 @@ GPUTYPES::GPUTYPES(LPDIRECT3DDEVICE9 pDevice) {
   else
     _half1.Managed = NEW  types(1, _half2.Managed->real_elem_size, _half2.Managed->format, _HALF);
 
+  // for 8 bit integer formats
   if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_A8R8G8B8)))
     _fixed4.Managed = NEW  types(4, 4, D3DFMT_A8R8G8B8, _FIXED);
   else
@@ -136,6 +159,33 @@ GPUTYPES::GPUTYPES(LPDIRECT3DDEVICE9 pDevice) {
     _fixed1.Managed = NEW  types(1, 1, D3DFMT_L8, _FIXED);
   else
     _fixed1.Managed = NEW  types(1, _fixed2.Managed->real_elem_size, _fixed2.Managed->format, _FIXED);
+
+  // possible formats for for supporting 10-16 bit formats
+  // D3DFMT_V16U16=64:         32-bit bump-map format using 16 bits for each channel. (signed!)
+  // D3DFMT_Q16W16V16U16=110:  64-bit bump-map format using 16 bits for each component.
+  // D3DFMT_A2B10G10R10=31:    32-bit pixel format using 10 bits for each color and 2 bits for alpha.
+  // D3DFMT_A2R10G10B10=35:    32-bit pixel format using 10 bits each for red, green, and blue, and 2 bits for alpha.
+  // these are the most generic ones:
+  // D3DFMT_A16B16G16R16=36:   64-bit pixel format using 16 bits for each component.
+  // D3DFMT_G16R16=34:         32-bit pixel format using 16 bits each for green and red.
+  // D3DFMT_L16=81:            16-bit luminance only.
+
+  // for 10-16 bit integer formats
+  if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_A16B16G16R16)))
+    _fixed4_16.Managed = NEW  types(4, 4, D3DFMT_A16B16G16R16, _FIXED16);
+  else
+    _fixed4_16.Managed = NEW  types(4, 0, D3DFMT_UNKNOWN, _FIXED16);
+
+  if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_G16R16)))
+    _fixed2_16.Managed = NEW  types(2, 2, D3DFMT_G16R16, _FIXED16);
+  else
+    _fixed2_16.Managed = NEW  types(2, _fixed4_16.Managed->real_elem_size, _fixed4_16.Managed->format, _FIXED16);
+
+  if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, 0, D3DRTYPE_TEXTURE, D3DFMT_L16)))
+    _fixed1_16.Managed = NEW  types(1, 1, D3DFMT_L16, _FIXED16);
+  else
+    _fixed1_16.Managed = NEW  types(1, _fixed2_16.Managed->real_elem_size, _fixed2_16.Managed->format, _FIXED16);
+
 
   if (pD3D)
     pD3D->Release();
@@ -152,6 +202,9 @@ GPUTYPES::~GPUTYPES()
   delete(_fixed1.Managed);
   delete(_fixed2.Managed);
   delete(_fixed4.Managed);
+  delete(_fixed1_16.Managed);
+  delete(_fixed2_16.Managed);
+  delete(_fixed4_16.Managed);
 
   delete(_float1.RenderTarget);
   delete(_float2.RenderTarget);
@@ -162,6 +215,9 @@ GPUTYPES::~GPUTYPES()
   delete(_fixed1.RenderTarget);
   delete(_fixed2.RenderTarget);
   delete(_fixed4.RenderTarget);
+  delete(_fixed1_16.RenderTarget);
+  delete(_fixed2_16.RenderTarget);
+  delete(_fixed4_16.RenderTarget);
 }
 
 /*
@@ -217,7 +273,7 @@ TextureRT::TextureRT(LPDIRECT3DDEVICE9 pDevice, int width, int height, Types& Ty
 
 #ifdef _DEBUG
   char BUF[10];
-  itoa(ID, BUF, 10);
+  _itoa(ID, BUF, 10);
   OutputDebugString("Creating TextureRT ID:");
   OutputDebugString(BUF);
   OutputDebugString("\n");
@@ -248,7 +304,7 @@ TextureRT::TextureRT(TextureRT* src, HRESULT &hr)
   HRESULT result;
 #ifdef _DEBUG
   char BUF[10];
-  itoa(ID, BUF, 10);
+  _itoa(ID, BUF, 10);
   OutputDebugString("Creating TextureRT ID:");
   OutputDebugString(BUF);
   OutputDebugString("\n");
@@ -289,8 +345,8 @@ TextureRT::~TextureRT()
   if (_RefCount < 1)
     if (n != 0) {
       char BUF[10];
-      itoa(ID, BUF, 10);
-      itoa(n, BUF + 5, 5);
+      _itoa(ID, BUF, 10);
+      _itoa(n, BUF + 5, 5);
       OutputDebugString("Not released TextureRT ID:");
       OutputDebugString(BUF);
       OutputDebugString("\n");
@@ -304,7 +360,7 @@ void TextureRT::operator delete(void *p) {
   if (_this->_RefCount <= 0) {
 #ifdef _DEBUG
     char BUF[10];
-    itoa(_this->ID, BUF, 10);
+    _itoa(_this->ID, BUF, 10);
     OutputDebugString("Deleting TextureRT ID:");
     OutputDebugString(BUF);
     OutputDebugString("\n");
@@ -330,8 +386,8 @@ void TextureRT::Release() {
 #ifdef _DEBUG
     if (n != 0) {
       char BUF[10];
-      itoa(ID, BUF, 10);
-      itoa(n, BUF + 5, 5);
+      _itoa(ID, BUF, 10);
+      _itoa(n, BUF + 5, 5);
       OutputDebugString("Not released TextureRT ID:");
       OutputDebugString(BUF);
       OutputDebugString("\n");
@@ -715,7 +771,7 @@ TextureM::TextureM(LPDIRECT3DDEVICE9 pDevice, int width, int height, Types& Type
   HRESULT result;
 #ifdef _DEBUG
   char BUF[10];
-  itoa(ID, BUF, 10);
+  _itoa(ID, BUF, 10);
   OutputDebugString("Creating TextureM ID:");
   OutputDebugString(BUF);
   OutputDebugString("\n");
@@ -765,7 +821,7 @@ void TextureM::operator delete(void *p) {
   if (static_cast<TextureM*>(p)->_RefCount <= 0) {
 #ifdef _DEBUG
     char BUF[10];
-    itoa(static_cast<TextureM*>(p)->ID, BUF, 10);
+    _itoa(static_cast<TextureM*>(p)->ID, BUF, 10);
     OutputDebugString("Deleting TextureM ID:");
     OutputDebugString(BUF);
     OutputDebugString("\n");
@@ -794,11 +850,13 @@ HRESULT TextureM::SetDataEnd() {
 /*
  * UploadToTexture
  *
- *		Upload src to texture. Source must have same width and height as texture (but can have different pitch)
+ *    Upload src to texture. Source must have same width and height as texture (but can have different pitch)
  *
  * Inputs:
- *		src:[in] source to upload. Must have same width and height as texture and same type: unsigned char=fixed, float = float but float=half (will be converted)
- *      pitch:[in] src pitch in bytes
+ *    src:[in] source to upload. Must have same width and height as texture and same type: 
+ *             unsigned char=fixed, float=float but float=half (will be converted)
+ *             For 16 bit input unsigned uint16_t=fixed16 (pinterf)
+ *    pitch:[in] src pitch in bytes
  * Returns:
  *     None
  *
@@ -851,8 +909,46 @@ void UploadToTexture(Texture *texture, const void* src, int pitch) {
     int dstpitch = LockedRect.Pitch / sizeof(unsigned char);
     //int srcpitch=width*ptype->elem_size;//<<(elem_size<<1)
     int srcpitch = (pitch ? pitch : width * ptype->elem_size);
+    // we are using two-pixel units for passing original frame content
     if (dstInc == 2 && srcInc == 2 && dstpitch == srcpitch) {
       memcpy(dstp, srcp, srcpitch*height);
+      break;
+    }
+    if (dstInc >= 2) {
+      // magic with alpha
+      // e.g. change ARGB to ABGR (A is MSB)
+      // dstInc==4, srcInc==4 -> alpha=4-1=3
+      // dstInc==2, srcInc==2 -> alpha=2-1=1
+      // dstInc==4, srcInc==2 -> alpha=4-1-2=1
+      // dstInc==4, srcInc==1 -> alpha=4-1-1=2
+      int alpha = srcInc == dstInc ? dstInc - 1 : dstInc - 1 - srcInc;
+      for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch) {
+        // copy from src position 1..(srcInc-1)
+        for (int elem = 1; elem < srcInc; elem++)
+          for (int x = 0, doffset = dstInc - 1 - elem, soffset = elem - 1; x < width; x++, doffset += dstInc, soffset += srcInc)
+            *(dstp + doffset) = *(srcp + soffset);
+        for (int x = 0, doffset = alpha, soffset = srcInc - 1; x < width; x++, doffset += dstInc, soffset += srcInc)
+          *(dstp + doffset) = *(srcp + soffset);
+      }
+    }
+    else
+      for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch)
+        for (int elem = 0; elem < srcInc; elem++)
+          for (int x = 0, doffset = dstInc - 1 - elem, soffset = elem; x < width; x++, doffset += dstInc, soffset += srcInc)
+            *(dstp + doffset) = *(srcp + soffset);
+    break; }
+  case _FIXED16: {
+    const uint16_t* srcp = (const uint16_t*)src;
+    uint16_t* dstp = (uint16_t*)LockedRect.pBits;
+    int srcInc = ptype->elem_size;
+    int dstInc = ptype->real_elem_size;
+
+    int dstpitch = LockedRect.Pitch / sizeof(uint16_t);
+    //int srcpitch=width*ptype->elem_size;//<<(elem_size<<1)
+    int srcpitch = (pitch ? pitch : width * ptype->elem_size);
+
+    if (dstInc == 2 && srcInc == 2 && dstpitch == srcpitch) {
+      memcpy(dstp, srcp, srcpitch * sizeof(uint16_t) * height);
       break;
     }
     if (dstInc >= 2) {
@@ -915,6 +1011,15 @@ void DownloadFromTexture(TextureRT *texture, void* dst, int pitch, bool IgnoreAl
       int srcInc = ptype->real_elem_size;
       int srcpitch = LockedRect.Pitch / sizeof(float);
       int dstpitch = (pitch ? pitch : width * ptype->elem_size);//<<(elem_size<<1)
+      // we are using four-pixel units for final download
+      // At non-8 bits the original 0 1 2 3 is changed into 2 1 0 3 
+      // but we changed the order in Img2toImg4 in order to allow memcpy here
+      if (dstInc == 4 && srcInc == 4 && IgnoreAlphaChannel)
+      {
+        for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch)
+          memcpy(dstp, srcp, srcpitch * sizeof(float));
+        break;
+      }
       for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch)
         for (int elem = 0; elem < dstInc; elem++)
           for (int x = 0, soffset =/*srcInc-1-*/elem, doffset = elem; x < width; x++, doffset += dstInc, soffset += srcInc)
@@ -962,6 +1067,39 @@ void DownloadFromTexture(TextureRT *texture, void* dst, int pitch, bool IgnoreAl
             for (int x = 0, doffset = dstInc - 1 - elem, soffset = elem; x < width; x++, doffset += dstInc, soffset += srcInc)
               *(dstp + doffset) = *(srcp + soffset);
       break; }
+    case _FIXED16: {
+      uint16_t* dstp = (uint16_t*)dst;
+      uint16_t* srcp = (uint16_t*)LockedRect.pBits;
+      int dstInc = ptype->elem_size;
+      int srcInc = ptype->real_elem_size;
+      int srcpitch = LockedRect.Pitch / sizeof(uint16_t);
+      int dstpitch = (pitch ? pitch : width * ptype->elem_size); //*ptype->elem_size;//<<(elem_size<<1)
+      // we are using four-pixel units for final download
+      // At non-8 bits the original 0 1 2 3 is changed into 2 1 0 3 
+      // but we changed the order in Img2toImg4 in order to allow memcpy here
+      if (dstInc == 4 && srcInc == 4 && IgnoreAlphaChannel)
+      {
+        for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch)
+          memcpy(dstp, srcp, srcpitch * sizeof(uint16_t));
+        break;
+      }
+
+      if (srcInc >= 2) {
+        int alpha = srcInc == dstInc ? srcInc - 1 : srcInc - 1 - dstInc;
+        for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch) {
+          for (int elem = 1; elem < dstInc; elem++)
+            for (int x = 0, soffset = srcInc - 1 - elem, doffset = elem - 1; x < width; x++, doffset += dstInc, soffset += srcInc)
+              *(dstp + doffset) = *(srcp + soffset);
+          for (int x = 0, soffset = alpha, doffset = dstInc - 1; x < width; x++, doffset += dstInc, soffset += srcInc)
+            *(dstp + doffset) = *(srcp + soffset);
+        }
+      }
+      else
+        for (int y = 0; y < height; y++, srcp += srcpitch, dstp += dstpitch)
+          for (int elem = 0; elem < srcInc; elem++)
+            for (int x = 0, doffset = dstInc - 1 - elem, soffset = elem; x < width; x++, doffset += dstInc, soffset += srcInc)
+              *(dstp + doffset) = *(srcp + soffset);
+      break; }
     }
   LOG("done")
     LOG("GetDataEnd...")
@@ -986,6 +1124,7 @@ void DownloadFromTexture(TextureRT *texture, void* dst, int pitch, bool IgnoreAl
  *	Remarks:
  *
  */
+// YUY2
 void UploadInterleavedToFixedTexture(Texture *texture, const void* src, int pitch, int srcoffset) {
   types* ptype = texture->GetType();
   D3DLOCKED_RECT LockedRect;
@@ -1036,6 +1175,7 @@ void UploadInterleavedToFixedTexture(Texture *texture, const void* src, int pitc
  *	Remarks:
  *
  */
+// YUY2
 void DownloadFromFixedTextureInterleaved(TextureRT *texture, void* dst, int pitch, bool IgnoreAlphaChannel, int dstoffset) {
   LOG("Thread ID: " << GetCurrentThreadId());
 

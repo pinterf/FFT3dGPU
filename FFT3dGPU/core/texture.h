@@ -32,14 +32,24 @@
 enum gpu_types {
   _FLOAT = 4,
   _HALF = 2,
-  _FIXED = 1
+  _FIXED = 1,
+  _FIXED16 = 3
 };
 
 
 class types {
+  int GetByteSize(gpu_types gt) {
+    switch (gt) {
+    case _FIXED: return 1;
+    case _FIXED16: return 2;
+    case _HALF: return 2;
+    case _FLOAT: return 4;
+    default: return 0; // n/a
+    }
+  }
 public:
   types(int es, int res, D3DFORMAT form, gpu_types gt) :
-    elem_size(es), real_elem_size(res), format(form), type(gt), PixelSizeInByte(res*gt) {}
+    elem_size(es), real_elem_size(res), format(form), type(gt), PixelSizeInByte(res* GetByteSize(gt)) {}
   const int elem_size;
   const int real_elem_size;
   const D3DFORMAT format;
@@ -64,6 +74,9 @@ public:
   Types FIXED() { return _fixed1; }
   Types FIXED2() { return _fixed2; }
   Types FIXED4() { return _fixed4; }
+  Types FIXED_16() { return _fixed1_16; }
+  Types FIXED2_16() { return _fixed2_16; }
+  Types FIXED4_16() { return _fixed4_16; }
   Types HALF() { return _half1; }
   Types HALF2() { return _half2; }
   Types HALF4() { return _half4; }
@@ -78,6 +91,9 @@ private:
   Types _fixed1;
   Types _fixed2;
   Types _fixed4;
+  Types _fixed1_16;
+  Types _fixed2_16;
+  Types _fixed4_16;
 
 };
 
