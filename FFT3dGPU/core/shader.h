@@ -48,6 +48,7 @@ protected:
   virtual HRESULT ResetShader(LPDIRECT3DDEVICE9 pDevice, bool firstpass) { return 1; }
   D3DXMACRO* macro;
   D3DXMACRO* VecToMacroArray(D3DXVECTOR2 &vector, const char* name, D3DXMACRO* macroarray, int offset = 0);
+  D3DXMACRO* IntToMacroArray(int &i, const char* name, D3DXMACRO* macroarray, int offset = 0);
   D3DXMACRO* FloatToMacroArray(float &f, const char* name, D3DXMACRO* macroarray, int offset = 0);
   D3DXMACRO* SetMacroArray(const char* name, D3DXMACRO* macroarray, int offset = 0);
   D3DXMACRO* EndMacroArray();

@@ -135,8 +135,37 @@ UINT Shader::GetSamplerIndex(D3DXHANDLE hConstant)
  */
 D3DXMACRO* Shader::VecToMacroArray(D3DXVECTOR2 &vector, const char* name, D3DXMACRO* macroarray, int offset) {
   std::stringstream ss;
-  static std::string str[5];
+  static std::string str[7];
   ss << "float2(" << std::fixed << vector.x << "," << vector.y << ")";
+  str[0 + offset] = ss.str();
+  macroarray[0 + offset].Name = name;
+  macroarray[0 + offset].Definition = str[0 + offset].c_str();
+  //macroarray[1+offset].Name=0;
+  //macroarray[1+offset].Definition=0;
+  return macroarray;
+}
+
+/*
+ * IntToMacroArray
+ *
+ *		Converts an integer to a macroarray to be used in the preprocessor definition #define name f
+ *
+ *
+ * Inputs:
+ *		i:[in] input int
+ *		name:[in]name of the the definition
+ *		macroarray:[in][out]input macroarray to put the definition in
+ *		offset:[in]the location of this definition inside the array
+ * Returns:
+ *     Pointer to the input macroarray
+ *
+ *	Remarks:
+ *
+ */
+D3DXMACRO* Shader::IntToMacroArray(int &i, const char* name, D3DXMACRO* macroarray, int offset) {
+  std::stringstream ss;
+  static std::string str[7];
+  ss << i;
   str[0 + offset] = ss.str();
   macroarray[0 + offset].Name = name;
   macroarray[0 + offset].Definition = str[0 + offset].c_str();
@@ -164,7 +193,7 @@ D3DXMACRO* Shader::VecToMacroArray(D3DXVECTOR2 &vector, const char* name, D3DXMA
  */
 D3DXMACRO* Shader::FloatToMacroArray(float &f, const char* name, D3DXMACRO* macroarray, int offset) {
   std::stringstream ss;
-  static std::string str[5];
+  static std::string str[7];
   ss << std::fixed << f;
   str[0 + offset] = ss.str();
   macroarray[0 + offset].Name = name;
