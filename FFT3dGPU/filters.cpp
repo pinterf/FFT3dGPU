@@ -22,11 +22,12 @@
 #include "filters.h"
 #include "./core/Debug class.h"
 #include <dxerr.h>
+#include <d3d9.h>
 
 const double pi(acos(-1.0));
 
-/*		ImgStream
- *  Constructor: Set up the neccesary pixelshaders and textures to convert a unsigned char source array to a float texture and back
+/*  ImgStream
+ *  Constructor: Set up the neccesary pixelshaders and textures to convert a unsigned char/uint16_t/float source array to a float texture and back
  *
  * Inputs:
  *		x:[in] block width
@@ -52,25 +53,29 @@ const double pi(acos(-1.0));
  */
 
 
-ImgStream::ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned int ynum, int mode, unsigned int width, unsigned int height, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, HRESULT &hr, int border)
+ImgStream::ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned int ynum, int mode, unsigned int width, unsigned int height, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, int bits_per_pixel, HRESULT &hr, int border)
   :FactorLUT(0), lastpitch(0), bw(x), bh(y), pDevice(_pDevice), gtype(_gtype), Img2toFloat4_2(0), Float4toImg2_2(0)
 {
+  // Scale 10-14 bits to 16 bits in Img2toFloat4 Img2toFloat4MP and Img2toFloat4_2, back to original bit depth in Img2toImg4
 
   unsigned int yn = y * ynum;
   unsigned int xn = x * xnum;
   unsigned int xn2 = xn / 2;
   //Img=texture to upload src to
-  TextureM* Img = NEW  TextureM(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);//NEW  TextureM(pDevice,xn2,yn,gtype->FIXED2(),hr);
+  TextureM* Img = NEW  TextureM(pDevice, (width + 1) >> 1, height, bits_per_pixel == 8 ? gtype->FIXED2() : bits_per_pixel <= 16 ? gtype->FIXED2_16() : gtype->FLOAT2(), hr);//NEW  TextureM(pDevice,xn2,yn,gtype->FIXED2(),hr);
   if (FAILED(hr)) {
     hr = DXTrace("fft.cpp", __LINE__, hr, "ImgStream::Create Img", true); return;
   }
   //Imgd=texture to render float texture to
-  /*TextureRT* */Imgd = NEW  TextureRT(pDevice, (width + 1) >> 1, height, gtype->FIXED2(), hr);
-  TextureRT* Imgr = NEW  TextureRT(pDevice, (width + 1) >> 2, height, gtype->FIXED4(), hr);
+  /*TextureRT* */
+  Imgd = NEW  TextureRT(pDevice, (width + 1) >> 1, height, bits_per_pixel == 8 ? gtype->FIXED2() : bits_per_pixel <= 16 ? gtype->FIXED2_16() : gtype->FLOAT2(), hr);
+
+  // fixme PF: really + 1 and not +3? (width + 1)>>2?? Yes let it be +3
+  TextureRT* Imgr = NEW  TextureRT(pDevice, (width + 3) >> 2, height, bits_per_pixel == 8 ? gtype->FIXED4() : bits_per_pixel <= 16 ? gtype->FIXED4_16() : gtype->FLOAT4(), hr); // debug
   if (FAILED(hr)) {
     hr = DXTrace("fft.cpp", __LINE__, hr, "ImgStream::Create Imgd", true); return;
   }
-  conv = NEW psImg2toImg4(_pDevice, Imgd, Imgr);
+  conv = NEW psImg2toImg4(_pDevice, Imgd, Imgr, bits_per_pixel);
   //offset= the amount the src is shifted
   D3DXVECTOR2 offset = D3DXVECTOR2(0.25*(bw), 0.5*bh);
   RECT Rendertarget;
@@ -100,11 +105,11 @@ ImgStream::ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned
     //	factorMap[i]=sqrt(0.5);
     CreateFactorMap(factorMap, x, xnum, y, ynum, mode == 1);
     //Pixelshader initialization
-    Img2toFloat4 = NEW  psImg2toFloat4m0(_pDevice, Rendertarget, src, offset, Img);
+    Img2toFloat4 = NEW  psImg2toFloat4m0(_pDevice, Rendertarget, src, offset, Img, bits_per_pixel);
     Float4toImg2 = NEW  psFloat4toImg2m0(_pDevice, Imgd, FactorLUT, offset);
     //when mode=1 an extra texture is needed to be processed.
     if (mode == 1) {
-      Img2toFloat4_2 = NEW  psImg2toFloat4_2(_pDevice, Rendertarget, src, offset, Img);
+      Img2toFloat4_2 = NEW  psImg2toFloat4_2(_pDevice, Rendertarget, src, offset, Img, bits_per_pixel);
       Float4toImg2_2 = NEW  psFloat4toImg2_2(_pDevice, Imgd, FactorLUT, offset);
     }
   }
@@ -117,7 +122,7 @@ ImgStream::ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned
     if (FAILED(hr)) {
       hr = DXTrace("fft.cpp", __LINE__, hr, "ImgStream::Create FactorLUT", true); return;
     }
-    Img2toFloat4 = NEW  psImg2toFloat4m2(_pDevice, bw / 2, bh, xnum, ynum, border, Img);
+    Img2toFloat4 = NEW  psImg2toFloat4m2(_pDevice, bw / 2, bh, xnum, ynum, border, Img, bits_per_pixel);
     Float4toImg2 = NEW  psFloat4toImg2m2(_pDevice, bw / 2, bh, xnum, ynum, border, Imgd);
     factorMap = NEW  float[x*y];
     CreateFactorMapBorder(factorMap, x, y, border);
@@ -259,20 +264,40 @@ ImgStream::~ImgStream() {
  //mode 0 and 2
 void ImgStream::ImgToStream(Texture* Img, TextureRT* dst) {
   PROFILE_BLOCK
-    //WriteMemFixedToFile(src,Img->GetWidth()*2,Img->GetHeight(),1,"Src.txt","src");
-    //UploadToTexture(Img,src,pitch);
-    Img2toFloat4->Apply(Img, FactorLUT, dst);
-  /*float *ftemp=NEW  float[dst->GetWidth()*dst->GetHeight()*4];
-  DownloadFromTexture(dst,ftemp,0);
-  WriteMemFloatToFile(ftemp,dst->GetWidth(),dst->GetHeight(),4,"Img2toFloat4.txt","");*/
+
+  //WriteMemFixedToFile(src,Img->GetWidth()*2,Img->GetHeight(),1,"Src.txt","src");
+  //UploadToTexture(Img,src,pitch);
+  Img2toFloat4->Apply(Img, FactorLUT, dst);
+#if 0
+  {
+    float* ftemp = NEW  float[dst->GetWidth() * dst->GetHeight() * 4];
+    DownloadFromTexture(dst, ftemp, 0);
+    if (Img->GetType()->type == _FIXED)
+      WriteMemFloatToFile(ftemp, dst->GetWidth(), dst->GetHeight(), 4/*elemsize*/, "Img2toFloat4_from_8.txt", "", false);
+    else // from 10-16 bits or or float
+      WriteMemFloatToFile(ftemp, dst->GetWidth(), dst->GetHeight(), 4, "Img2toFloat4_from_16.txt", "", false);
+    delete ftemp;
+  }
+#endif
+
 }
 
 //mode 1
 void ImgStream::ImgToStream(Texture* Img, pTextureRTpair *dst) {
   PROFILE_BLOCK
-    //UploadToTexture(Img,src,pitch);
-    Img2toFloat4->Apply(Img, FactorLUT, dst->first);
+
+  //WriteMemFixedToFile(src,Img->GetWidth()*2,Img->GetHeight(),1,"Src.txt","src");
+  //UploadToTexture(Img,src,pitch);
+  Img2toFloat4->Apply(Img, FactorLUT, dst->first);
   Img2toFloat4_2->Apply(Img, FactorLUT, dst->last);
+  /*
+  float *ftemp=NEW  float[dst->GetWidth()*dst->GetHeight()*4];
+  DownloadFromTexture(dst->first,ftemp,0);
+  WriteMemFloatToFile(ftemp,dst->first->GetWidth(),dst->first->GetHeight(),4,"Img2toFloat4_first.txt","");
+  float *ftemp2=NEW  float[dst->GetWidth()*dst->GetHeight()*4];
+  DownloadFromTexture(dst->last,ftemp,0);
+  WriteMemFloatToFile(ftemp2,dst->last->GetWidth(),dst->last->GetHeight(),4,"Img2toFloat4_last.txt","");
+  */
 }
 
 /*
@@ -296,7 +321,7 @@ void ImgStream::ImgToStream(Texture* Img, pTextureRTpair *dst) {
  //mode 0,2
 void ImgStream::StreamToImg(Texture* src, TextureRT* dst) {
   PROFILE_BLOCK
-    LOG("Float4toImg2...");
+  LOG("Float4toImg2...");
 
   Float4toImg2->Apply(src, FactorLUT, Imgd);
   conv->Apply(Imgd, dst);
@@ -309,14 +334,14 @@ void ImgStream::StreamToImg(Texture* src, TextureRT* dst) {
 //mode 1
 void ImgStream::StreamToImg(pTextureRTpair *src, TextureRT* dst) {
   PROFILE_BLOCK
-    Float4toImg2_2->Apply(src->first, src->last, FactorLUT, Imgd);
+  Float4toImg2_2->Apply(src->first, src->last, FactorLUT, Imgd);
   conv->Apply(Imgd, dst);
   //
   //DownloadFromTexture(Imgd,dst,pitch);
 }
 
 /*		ImgStream2
- *  Constructor: Set up the neccesary pixelshaders and textures to convert a unsigned char source array to a float texture pair and back
+ *  Constructor: Set up the neccesary pixelshaders and textures to convert a unsigned char/uint16_t/float source array to a float texture pair and back
  *
  * Inputs:
  *		bw:[in] block width
@@ -338,13 +363,13 @@ void ImgStream::StreamToImg(pTextureRTpair *src, TextureRT* dst) {
  * Remarks:
  */
 
-ImgStream2::ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture* src, TextureRT* fdst, TextureRT* dst, bool chroma, int wintype, bool interlaced, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, HRESULT &hr) :
+ImgStream2::ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture* src, TextureRT* fdst, TextureRT* dst, bool chroma, int wintype, bool interlaced, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, int bits_per_pixel, HRESULT &hr) :
   FactorLUTana(0), FactorLUTsyn(0), i2f(0), f2i(0), conv(0), pDevice(_pDevice), gtype(_gtype), Imgd(0)
 {
   unsigned int width = src->GetWidth();
   unsigned int height = src->GetHeight();
-  Imgd = NEW  TextureRT(pDevice, width, height, gtype->FIXED2(), hr);
-  conv = NEW psImg2toImg4(pDevice, Imgd, dst);
+  Imgd = NEW  TextureRT(pDevice, width, height, bits_per_pixel == 8 ? gtype->FIXED2() : bits_per_pixel <= 16 ? gtype->FIXED2_16() : gtype->FLOAT2(), hr);
+  conv = NEW psImg2toImg4(pDevice, Imgd, dst, bits_per_pixel);
   D3DCAPS9 Cap;
   _pDevice->GetDeviceCaps(&Cap);
   //Cap.NumSimultaneousRTs=1;
@@ -366,13 +391,13 @@ ImgStream2::ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture
     {
       if (interlaced)
       {
-        i2f = NEW psImg2ToFloat4ohalfInterlacedSP(pDevice, src, fdst, bw / 2, bh, chroma);
-        f2i = NEW psFloat4ToImg2ohalfInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, chroma, false);
+        i2f = NEW psImg2ToFloat4ohalfInterlacedSP(pDevice, src, fdst, bw / 2, bh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2ohalfInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, chroma, bits_per_pixel, false);
       }
       else
       {
-        i2f = NEW psImg2ToFloat4ohalfSP(pDevice, src, bw / 2, bh, chroma);
-        f2i = NEW psFloat4ToImg2ohalf(pDevice, width, height, bw / 2, bh, fdst->GetWidth(), fdst->GetHeight(), chroma, false);
+        i2f = NEW psImg2ToFloat4ohalfSP(pDevice, src, bw / 2, bh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2ohalf(pDevice, width, height, bw / 2, bh, fdst->GetWidth(), fdst->GetHeight(), chroma, bits_per_pixel, false);
       }
 
     }
@@ -380,13 +405,13 @@ ImgStream2::ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture
     {
       if (interlaced)
       {
-        i2f = NEW psImg2ToFloat4ohalfInterlacedMP(pDevice, src, fdst, bw / 2, bh, chroma);
-        f2i = NEW psFloat4ToImg2ohalfInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, chroma, true);
+        i2f = NEW psImg2ToFloat4ohalfInterlacedMP(pDevice, src, fdst, bw / 2, bh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2ohalfInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, chroma, bits_per_pixel, true);
       }
       else
       {
-        i2f = NEW psImg2ToFloat4ohalfMP(pDevice, src, bw / 2, bh, chroma);
-        f2i = NEW psFloat4ToImg2ohalf(pDevice, width, height, bw / 2, bh, fdst->GetWidth(), fdst->GetHeight(), chroma, true);
+        i2f = NEW psImg2ToFloat4ohalfMP(pDevice, src, bw / 2, bh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2ohalf(pDevice, width, height, bw / 2, bh, fdst->GetWidth(), fdst->GetHeight(), chroma, bits_per_pixel, true);
       }
     }
 
@@ -397,26 +422,26 @@ ImgStream2::ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture
     {
       if (interlaced)
       {
-        i2f = NEW psImg2ToFloat4oInterlacedSP(pDevice, src, fdst, bw / 2, bh, ow / 2, oh, chroma);
-        f2i = NEW psFloat4ToImg2oInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, ow / 2, oh, chroma);
+        i2f = NEW psImg2ToFloat4oInterlacedSP(pDevice, src, fdst, bw / 2, bh, ow / 2, oh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2oInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, ow / 2, oh, chroma, bits_per_pixel);
       }
       else
       {
-        i2f = NEW psImg2ToFloat4oSP(pDevice, src, bw / 2, bh, ow / 2, oh, chroma);
-        f2i = NEW psFloat4ToImg2o(pDevice, width, height, bw / 2, bh, ow / 2, oh, fdst->GetWidth(), fdst->GetHeight(), chroma);
+        i2f = NEW psImg2ToFloat4oSP(pDevice, src, bw / 2, bh, ow / 2, oh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2o(pDevice, width, height, bw / 2, bh, ow / 2, oh, fdst->GetWidth(), fdst->GetHeight(), chroma, bits_per_pixel);
       }
     }
     else
     {
       if (interlaced)
       {
-        i2f = NEW psImg2ToFloat4oInterlacedMP(pDevice, src, fdst, bw / 2, bh, ow / 2, oh, chroma);
-        f2i = NEW psFloat4ToImg2oInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, ow / 2, oh, chroma);
+        i2f = NEW psImg2ToFloat4oInterlacedMP(pDevice, src, fdst, bw / 2, bh, ow / 2, oh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2oInterlaced(pDevice, fdst, Imgd, bw / 2, bh, _gtype, ow / 2, oh, chroma, bits_per_pixel);
       }
       else
       {
-        i2f = NEW psImg2ToFloat4oMP(pDevice, src, bw / 2, bh, ow / 2, oh, chroma);
-        f2i = NEW psFloat4ToImg2o(pDevice, width, height, bw / 2, bh, ow / 2, oh, fdst->GetWidth(), fdst->GetHeight(), chroma);
+        i2f = NEW psImg2ToFloat4oMP(pDevice, src, bw / 2, bh, ow / 2, oh, chroma, bits_per_pixel);
+        f2i = NEW psFloat4ToImg2o(pDevice, width, height, bw / 2, bh, ow / 2, oh, fdst->GetWidth(), fdst->GetHeight(), chroma, bits_per_pixel);
       }
     }
   }

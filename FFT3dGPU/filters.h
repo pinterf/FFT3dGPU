@@ -27,7 +27,7 @@
 
 class ImgStream {
 public:
-  ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned int ynum, int mode, unsigned int width, unsigned int height, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, HRESULT &hr, int border = 0);
+  ImgStream(unsigned int x, unsigned int xnum, unsigned int y, unsigned int ynum, int mode, unsigned int width, unsigned int height, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, int bits_per_pixel, HRESULT &hr, int border = 0);
 
 
   ~ImgStream();
@@ -63,7 +63,7 @@ protected:
 class ImgStream2
 {
 public:
-  ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture* src, TextureRT* fdst, TextureRT* dst, bool chroma, int wintype, bool interlaced, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, HRESULT &hr);
+  ImgStream2(unsigned int bw, unsigned int bh, int ow, int oh, Texture* src, TextureRT* fdst, TextureRT* dst, bool chroma, int wintype, bool interlaced, LPDIRECT3DDEVICE9 _pDevice, GPUTYPES* _gtype, bool _useHalf, int bits_per_pixel, HRESULT &hr);
   ~ImgStream2();
   void ImgToTexture(Texture* src, pTextureRTpair *dst);
   void TextureToImg(pTextureRTpair *src, TextureRT* dst);
