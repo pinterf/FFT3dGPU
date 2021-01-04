@@ -332,13 +332,13 @@ HRESULT psKalmanMP::Apply(Texture* src, Texture* last, Texture* covarprocesslast
 }
 
 //*****************************************************************************************************************
-#define GETPIXEL2TYPEMACRO (src->GetType()->format==D3DFMT_A8L8 ? "A8L8" : src->GetType()->format==D3DFMT_G16R16 ? "G16R16" : src->GetType()->format==D3DFMT_G32R32F ? "G32R32F" : "A8L8")
+#define GETPIXEL2TYPEMACRO (src->GetType()->format==D3DFMT_A8L8 || src->GetType()->format==D3DFMT_A8R8G8B8 ? "A8L8" : src->GetType()->format==D3DFMT_G16R16 ? "G16R16" : src->GetType()->format==D3DFMT_G32R32F ? "G32R32F" : "A8L8")
 
 psImg2toImg4::psImg2toImg4(LPDIRECT3DDEVICE9 pDevice, Texture* src, Texture* Dst, int bits_per_pixel) :
   Pixelshader(pDevice, SRC_SHADER, "Img2toImg4", D3DXGetPixelShaderProfile(pDevice),
     VecToMacroArray((D3DXVECTOR2(1.0 / src->GetWidth(), 0)), "OFFSET",
       IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
-      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(3), 2) : CreateMacroArray(2))
+      (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2) ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(3), 2) : CreateMacroArray(2))
       ,1) ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src"))
 {
@@ -368,7 +368,7 @@ HRESULT psImg2toImg4::Apply(Texture* src, TextureRT* dst)
 psImg2toFloat4m0::psImg2toFloat4m0(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src, int bits_per_pixel) :
   psImg2toFloat4(pDevice, SRC_SHADER, "Img2toFloat4", D3DXGetPixelShaderProfile(pDevice),
     IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
-      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2)) : CreateMacroArray(1))
+      (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2) ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2), 1) : CreateMacroArray(1))
     ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
@@ -419,7 +419,7 @@ HRESULT psImg2toFloat4m0::Apply(Texture* src, Texture* FactorLUT, TextureRT* dst
 psImg2toFloat4m2::psImg2toFloat4m2(LPDIRECT3DDEVICE9 pDevice, int bw, int bh, int repx, int repy, int border, Texture* src, int bits_per_pixel) :
   psImg2toFloat4(pDevice, SRC_SHADER, "Img2toFloat4", D3DXGetPixelShaderProfile(pDevice),
     IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
-      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2)) : CreateMacroArray(1))
+      (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2) ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2), 1) : CreateMacroArray(1))
     ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
@@ -613,7 +613,7 @@ HRESULT psFloat4toImg2m2::Apply(Texture* src, Texture* FactorLUT, TextureRT* dst
 psImg2toFloat4_2::psImg2toFloat4_2(LPDIRECT3DDEVICE9 pDevice, RECT _Rendertarget, RECT Src, D3DXVECTOR2 &offset, Texture* src, int bits_per_pixel) :
   Pixelshader(pDevice, SRC_SHADER, "Img2toFloat4_2", D3DXGetPixelShaderProfile(pDevice),
     IntToMacroArray(bits_per_pixel, "BIT_DEPTH",
-      (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2)) : CreateMacroArray(1))
+      (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2) ? SetMacroArray(GETPIXEL2TYPEMACRO, CreateMacroArray(2), 1) : CreateMacroArray(1))
     ,0)),
   sSrc(_pConstantTable->GetConstantByName(NULL, "Src")),
   sFactor(_pConstantTable->GetConstantByName(NULL, "Factor"))
@@ -871,9 +871,9 @@ HRESULT psMeanSD::Apply(Texture* src,TextureRT* dst){
 }
 */
 
-#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX3 (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1))
-#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4 (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(4), 3) : CreateMacroArray(3), 2) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(3), 2) : CreateMacroArray(2))
-#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5 (src->GetType()->real_elem_size == 2 ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(5), 4) : CreateMacroArray(4), 3) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(4), 3) : CreateMacroArray(3))
+#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX3 (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2) ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(3), 2) : CreateMacroArray(2), 1) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(2), 1) : CreateMacroArray(1))
+#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX4 (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2)  ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(4), 3) : CreateMacroArray(3), 2) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(3), 2) : CreateMacroArray(2))
+#define DEFINE_A8L8_AND_CHROMA_MACROARRAY_MAX5 (src->GetType()->real_elem_size == 2 || (src->GetType()->real_elem_size == 4 && src->GetType()->elem_size == 2)  ? SetMacroArray(GETPIXEL2TYPEMACRO, chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(5), 4) : CreateMacroArray(4), 3) : chroma ? IntToMacroArray(bits_per_pixel, "CHROMA_BIT_DEPTH", CreateMacroArray(4), 3) : CreateMacroArray(3))
 //**************
 psImg2ToFloat4oSP::psImg2ToFloat4oSP(LPDIRECT3DDEVICE9 pDevice, Texture* src, int bw, int bh, int ow, int oh, bool chroma, int bits_per_pixel) :
   psImg2ToFloat4(pDevice, SRC_SHADER, "Img2ToFloat4", D3DXGetPixelShaderProfile(pDevice),

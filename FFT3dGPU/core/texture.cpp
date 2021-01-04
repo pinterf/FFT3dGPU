@@ -84,6 +84,7 @@ GPUTYPES::GPUTYPES(LPDIRECT3DDEVICE9 pDevice) {
   else
     _fixed4.RenderTarget = NEW  types(4, 0, D3DFMT_UNKNOWN, _FIXED);
 
+  // Note: (pinterf) for some reason A8L8 render target is not allowed for me, can really fallback to fixed4 mode
   if (SUCCEEDED(pD3D->CheckDeviceFormat(Parameters.AdapterOrdinal, Parameters.DeviceType, mode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_A8L8)))
     _fixed2.RenderTarget = NEW  types(2, 2, D3DFMT_A8L8, _FIXED);
   else
